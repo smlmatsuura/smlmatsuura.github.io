@@ -66,6 +66,7 @@ th:first-child,td:first-child{text-align:left}
 .pt td.mem div{height:15px;line-height:15px;border-bottom:1px dashed #666}
 .ptt{background:#fff;color:#000;text-align:center;font-weight:700;padding:6px;border:1px solid #888;border-top:4px solid #4472c4;margin:10px 12px 6px;font-size:14px}
 @page{size:A4 portrait;margin:8mm}
+.pdfmode .pg{width:794px;box-sizing:border-box;padding:24px 28px;background:#fff;min-height:1000px}.pdfmode .pt{min-width:0;font-size:9pt;margin-bottom:8px}.pdfmode .ptt{margin:0 0 6px}.pdfmode .pw{margin:0;overflow:visible}
 @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}header,nav,.noprint{display:none!important}body{background:#fff;padding:0}:root{padding:0}.pw{margin:0;overflow:visible}.pt{min-width:0;font-size:9pt;margin-bottom:8px}.ptt{margin:0 0 6px}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}}
 #hr{align-items:center}
 .ttl{flex:1;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -180,7 +181,7 @@ var ws=K("w").sort(bys),map={};ds.forEach(function(d){map[d.dt]=d});
 var f=new Date(ds[0].dt+"T00:00:00");f.setDate(f.getDate()-((f.getDay()+6)%7));
 var last=new Date(ds[ds.length-1].dt+"T00:00:00"),weeks=[];
 while(f<=last){var wk=[];for(var i=0;i<7;i++){var x=new Date(f);x.setDate(f.getDate()+i);wk.push(x)}weeks.push(wk);f.setDate(f.getDate()+7)}
-var h='<div class="noprint" style="margin:10px 12px"><button class="btn p" id="pr" style="width:100%">印刷 / PDFにする</button><div class="sub" style="margin-top:6px">表は横にスクロールできます。印刷はA4縦で、1枚に3週間ずつ入ります。ボタンを押しても印刷画面が出ないときは、Safariで開いて、共有ボタンから「プリント」を選んでください。</div></div>';
+var h='<div class="noprint" style="margin:10px 12px"><button class="btn p" id="pdf" style="width:100%">PDFにして共有（印刷・保存）</button><div class="sub" style="margin:6px 0">A4縦で、1枚に3週間ずつ入ります。押すとPDFができて、共有の画面が出ます。そこで「プリント」か「“ファイル”に保存」を選んでください。作るのに数秒かかります。</div><button class="btn" id="pr" style="width:100%">この画面をそのまま印刷（Safariで開いているとき用）</button><div class="sub" style="margin-top:6px">表は横にスクロールできます。</div></div>';
 for(var g=0;g<weeks.length;g+=3){h+='<div class="pg"><div class="ptt">'+esc(p.n)+'</div>';
 weeks.slice(g,g+3).forEach(function(wk){
 var cells=wk.map(function(x){var d=map[ymd(x)],m=d?ws.filter(function(w){return(d.m||[]).indexOf(w.id)>=0}):[],a=m.filter(function(w){return role(w)==="k"}),u=m.filter(function(w){return role(w)==="u"}),b=m.filter(function(w){return role(w)==="c"});return{x:x,d:d,a:a,u:u,b:b,names:m.filter(function(w){return role(w)!=="c"}).concat(b)}});
@@ -212,6 +213,23 @@ document.querySelector("nav").style.display=view==="proj"?"flex":"none";
 Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){b.className=b.dataset.tab===tab?"on":""});
 $("main").innerHTML=h}
 function del(id){var it=find(id);if(!it)return;it.x=1;touch(it);if(it.k==="p")all.forEach(function(d){if(d.k==="d"&&d.p===id){d.x=1;touch(d)}})}
+var pdfF=null;
+function lib(u){return new Promise(function(ok,ng){var s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=function(){ng(new Error("読み込めませんでした（通信を確認してください）"))};document.head.appendChild(s)})}
+function shPdf(f,b){return navigator.share({files:[f],title:f.name}).then(function(){pdfF=null;b.textContent="PDFにして共有（印刷・保存）"}).catch(function(e){if(e&&e.name==="AbortError"){pdfF=null;b.textContent="PDFにして共有（印刷・保存）";return}throw e})}
+function mkpdf(b){if(pdfF){shPdf(pdfF,b).catch(function(){b.textContent="共有できませんでした"});return}
+var pgs=document.querySelectorAll(".pg");if(!pgs.length)return;var p=curP(),nm=(p&&p.n?p.n:"工程表").replace(/[\\\/:*?"<>|]/g,"_");
+b.disabled=true;b.textContent="PDFを作っています…";
+var host=document.createElement("div");host.className="pdfmode";host.style.cssText="position:fixed;left:-10000px;top:0;width:794px;background:#fff";
+pgs.forEach(function(g){host.appendChild(g.cloneNode(true))});document.body.appendChild(host);
+Promise.all([window.html2canvas?0:lib("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"),window.jspdf?0:lib("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js")]).then(function(){
+var pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4"}),els=Array.prototype.slice.call(host.children),i=0;
+function next(){if(i>=els.length)return;var el=els[i];return window.html2canvas(el,{scale:2,backgroundColor:"#ffffff"}).then(function(cv){if(i>0)pdf.addPage();var w=210,h=cv.height*w/cv.width;if(h>297){h=297}pdf.addImage(cv.toDataURL("image/jpeg",0.92),"JPEG",0,0,w,h);i++;return next()})}
+return next().then(function(){return pdf.output("blob")})}).then(function(blob){
+document.body.removeChild(host);b.disabled=false;
+var f=new File([blob],nm+".pdf",{type:"application/pdf"});
+if(navigator.canShare&&navigator.canShare({files:[f]})){return navigator.share({files:[f],title:f.name}).then(function(){b.textContent="PDFにして共有（印刷・保存）"}).catch(function(e){if(e&&e.name==="AbortError"){b.textContent="PDFにして共有（印刷・保存）";return}pdfF=f;b.textContent="PDFができました。もう一度押すと共有できます"})}
+var u=URL.createObjectURL(blob);window.open(u,"_blank");b.textContent="PDFにして共有（印刷・保存）"
+}).catch(function(e){if(host.parentNode)document.body.removeChild(host);b.disabled=false;b.textContent="失敗："+(e&&e.message||e)})}
 document.addEventListener("click",function(e){var t=e.target,ds=t.dataset;if(!ds)return;var o=t.closest?t.closest("[data-open]"):null;if(o){pid=o.dataset.open;view="proj";tab="d";armed=null;render();window.scrollTo(0,0);return}
 if(t.id==="bk"){view="list";armed=null;render();window.scrollTo(0,0)}
 else if(t.id==="wk"){view="work";render();window.scrollTo(0,0)}
@@ -224,6 +242,7 @@ else if(ds.tg){var d=find(ds.tg),m=(d.m||[]).slice(),i=m.indexOf(ds.w);if(i>=0)m
 else if(ds.del){if(armed===ds.del){armed=null;del(ds.del);render();push()}else{armed=ds.del;render()}}
 else if(t.id==="ad"){var p=curP(),l=calc(p).ds,last=l.length?l[l.length-1].dt:null,dt=new Date();if(last){dt=new Date(last+"T00:00:00");dt.setDate(dt.getDate()+1)}add({k:"d",p:p.id,dt:ymd(dt),loc:"",cnt:0,ns:"",kt:"",m:[]});render();push()}
 else if(t.id==="pr"){window.print()}
+else if(t.id==="pdf"){mkpdf(t)}
 else if(t.id==="wa"){var n=$("wn").value.trim();if(n){add({k:"w",s:Date.now(),n:n,r:0,m:0,e:0,o:0,role:$("wk").value});render();push()}}
 else if(t.id==="wi"){var b=Date.now();$("wt").value.split("\n").forEach(function(ln,i){var f=ln.split(/[,\t]/).map(function(x){return x.trim()});if(!f[0])return;add({k:"w",s:b+i,n:f[0],r:+f[1]||0,m:+f[2]||0,e:+f[3]||0,o:+f[4]||0,role:f[5]==="2"?"u":f[5]==="1"?"c":"k",col:/^[0-9a-fA-F]{6}$/.test(f[6]||"")?f[6]:undefined})});render();push()}});
 document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;if(ds&&ds.xi!==undefined){var pp=curP();if(pp){setXs(pp,function(a){var x=a[+ds.xi];if(!x)return;if(ds.xf==="n")x.n=t.value.trim()||"（項目名）";else x.a=parseFloat(t.value)||0});render();push()}return}
