@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="現場計算">
+<meta name="theme-color" content="#2f5d9e">
+<title>現場計算</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1c1e21;--sub:#6b7280;--ln:#e5e7eb;--ac:#2f5d9e;--wn:#c2410c;--ok:#15803d;--hd:#e9ecf1;--am:#fff4d6;--amt:#7a5200;--k:#2f6fcf;--u:#d9730d;--c:#1f9d55;--kb:#e4eefc;--ub:#fdecd8;--cb:#dff3e7;--rb:#fde8e8;--rt:#9b1c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#111214;--card:#1c1e22;--tx:#eceef1;--sub:#9aa1ad;--ln:#2d3038;--ac:#6c9be0;--wn:#fb923c;--ok:#4ade80;--hd:#25282e;--am:#3a2f12;--amt:#f5d58a;--k:#6ea2f0;--u:#f59e42;--c:#4ade80;--kb:#1b2a44;--ub:#3a2a14;--cb:#14301f;--rb:#3a1a1a;--rt:#f5a3a3}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+input,button,select,textarea{font:inherit;color:var(--tx)}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 12px;z-index:5}
+.row{display:flex;gap:8px;align-items:flex-end}
+.row>*{flex:1;min-width:0}.row input{width:100%;min-width:0}
+select,input,textarea{width:100%;padding:9px 10px;border:1px solid var(--ln);border-radius:9px;background:var(--card)}
+textarea{resize:vertical}
+label{display:block;font-size:12px;color:var(--sub);margin-bottom:8px}
+label input,label textarea{margin-top:3px;font-size:15px;color:var(--tx)}
+.btn{padding:10px 14px;border:1px solid var(--ln);border-radius:10px;background:var(--card);flex:none;width:auto}
+.btn.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--card);margin:10px 12px;padding:12px;border-radius:12px;border:1px solid var(--ln)}
+.dh{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.dh input{width:150px;flex:none}
+.sub{color:var(--sub);font-size:12px;flex:1}
+.del{border:none;background:none;color:var(--wn);font-size:13px;width:auto;padding:4px}
+.memo textarea{border-color:transparent}
+.memo.ns textarea{background:var(--rb);color:var(--rt)}
+.memo.kt textarea{background:var(--am);color:var(--amt)}
+.memo.ns{color:var(--rt)}
+.memo.kt{color:var(--amt)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:8px 12px;border-radius:18px;border:2px solid var(--rc,var(--ln));background:var(--card);font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.chip.k{--rc:var(--k)}.chip.u{--rc:var(--u)}.chip.c{--rc:var(--c)}
+.chip.on{background:var(--rc);color:#fff;font-weight:700}
+.dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.3);display:inline-block;flex:none}
+.lg{display:flex;gap:14px;margin:10px 14px 0;font-size:13px;color:var(--sub)}
+.lg span{display:inline-flex;align-items:center;gap:5px}
+.lg .dot{border:none}
+.card.day{border-left:5px solid var(--ac)}
+.card>b:first-child{color:var(--ac)}
+.bal.n{background:var(--rb);border-color:transparent}
+.bal.p{background:var(--cb);border-color:transparent}
+.rt{display:inline-block;padding:1px 7px;border-radius:9px;font-size:11px;color:#fff;margin-left:6px}
+.rt.k{background:var(--k)}.rt.u{background:var(--u)}.rt.c{background:var(--c)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom,0px);z-index:9}
+nav button{flex:1;padding:14px 0;border:none;background:none;font-size:14px;color:var(--sub)}
+nav button.on{color:var(--ac);font-weight:700;box-shadow:inset 0 3px 0 var(--ac)}
+.big{font-size:26px;font-weight:700}
+.neg{color:var(--wn)}.pos{color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--hd);color:var(--sub);font-weight:600}
+th,td{padding:6px 4px;border-bottom:1px solid var(--ln);text-align:right}
+th:first-child,td:first-child{text-align:left}
+.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--ln);font-size:14px}
+.pw{overflow-x:auto;margin:10px 12px}
+.pt{width:100%;min-width:720px;border-collapse:collapse;table-layout:fixed;background:#fff;color:#000;font-size:11px;margin-bottom:12px}
+.pt td{border:1px solid #000;padding:2px 3px;text-align:center;vertical-align:top;overflow:hidden;word-break:break-all}
+.pt td.lb{width:50px;vertical-align:middle;background:#eef1f6;font-weight:700}
+.pt td.dd{border-bottom:2px solid #000}
+.pt td.t{white-space:pre-wrap}
+.h1{height:34px}.h2{height:64px}
+.pt td.mem{padding:0}
+.pt td.mem div{height:15px;line-height:15px;border-bottom:1px dashed #666}
+.ptt{background:#fff;color:#000;text-align:center;font-weight:700;padding:6px;border:1px solid #888;border-top:4px solid #4472c4;margin:10px 12px 6px;font-size:14px}
+@page{size:A4 portrait;margin:8mm}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}header,nav,.noprint{display:none!important}body{background:#fff;padding:0}:root{padding:0}.pw{margin:0;overflow:visible}.pt{min-width:0;font-size:9pt;margin-bottom:8px}.ptt{margin:0 0 6px}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}}
+#hr{align-items:center}
+.ttl{flex:1;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pj{cursor:pointer;border-left:5px solid var(--ac)}
+.pn{font-size:17px;font-weight:700;margin-bottom:3px}
+.pb{font-weight:700;margin-top:6px}
+html,body{overflow-x:hidden}
+.vr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--ln);font-size:14px}
+.vr>span{flex:1;min-width:0}
+.vr input{width:120px;flex:none;text-align:right;margin:0}
+.vr input{min-width:0;max-width:45%}.vr input.nm{width:auto;flex:1;max-width:none;text-align:left}
+.vr .xd{flex:none;width:38px;padding:6px 0;border:1px solid var(--ln);border-radius:8px;background:var(--card);color:var(--wn);font-size:15px}
+.vr .xd.arm{width:auto;padding:6px 8px;background:var(--wn);color:#fff;border-color:var(--wn);font-size:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tw{overflow-x:auto}
+.tw table{font-size:11px;width:100%}.tw td,.tw th{padding:5px 2px}.tw td:first-child{white-space:normal;line-height:1.3}.tw .rt{font-size:9px;padding:0 5px;margin:1px 0 0}
+.tw td,.tw th{white-space:nowrap}
+.tw tr.tt td{font-weight:700;border-top:2px solid var(--ln)}
+.emp{text-align:center;color:var(--sub);padding:30px 14px;line-height:1.7}
+#login{display:none;text-align:center;padding:80px 24px}
+#login p{color:var(--sub);line-height:1.6}
+</style>
+</head>
+<body>
+<div id="login"><h1>現場計算</h1><p>Microsoftアカウントでログインしてください。</p>
+<button class="btn p" id="lg" style="padding:14px 26px;font-size:16px">Microsoftでログイン</button><p id="lerr" style="color:var(--wn);font-size:13px"></p></div>
+<div id="app" style="display:none">
+<header><div class="row" id="hr"></div>
+<div class="sub" id="st" style="margin-top:4px"></div></header>
+<main id="main"></main>
+<nav><button data-tab="d">日程</button><button data-tab="x">経費</button><button data-tab="r">結果</button><button data-tab="p">印刷</button><button data-tab="w">職人</button></nav>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script>
+var CLIENT_ID="7806d507-6cf4-49ad-b426-30b64e18879c",SC=["Files.ReadWrite.AppFolder"];
+var URL_F="https://graph.microsoft.com/v1.0/me/drive/special/approot:/hotel.json:/content";
+var all=[],tab="d",pid=null,view="list",busy=false,timer=null,pca=null,armed=null;
+function $(i){return document.getElementById(i)}
+function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function yen(n){return Math.round(n).toLocaleString("ja-JP")}
+function K(k){return all.filter(function(i){return i.k===k&&!i.x})}
+function find(id){return all.filter(function(i){return i.id===id})[0]}
+function touch(it){it.t=Date.now()}
+function rate(p,w){var q=(p.pw&&p.pw[w.id])||{};return{r:q.r!=null?q.r:(w.r||0),m:q.m!=null?q.m:(w.m||0),e:q.e!=null?q.e:(w.e||0),o:q.o!=null?q.o:(w.o||0)}}
+function uid(){return"x"+Date.now().toString(36)+Math.floor(Math.random()*1e4)}
+function add(o){o.id=uid();o.t=Date.now();all.push(o);return o}
+var PAL=["F4CCCC","FCE5CD","FFF2CC","D9EAD3","D0E0E3","CFE2F3","D9D2E9","EAD1DC","E6B8AF","F9CB9C","FFE599","B6D7A8","A2C4C9","9FC5E8","B4A7D6","D5A6BD","EA9999","F9B37C"];
+function wcol(w){if(w.col&&/^#?[0-9a-fA-F]{6}$/.test(w.col))return"#"+w.col.replace("#","");var i=K("w").sort(bys).indexOf(w);return"#"+PAL[(i<0?0:i)%PAL.length]}
+var RN={k:"職人",u:"受け元",c:"掃除"};
+function role(w){return w.role||(w.c?"c":"k")}
+function cn(m,ws){var a=0,u=0,c=0;ws.forEach(function(w){if(m.indexOf(w.id)<0)return;var r=role(w);if(r==="c")c++;else if(r==="u")u++;else a++});return(u?"受け元"+u+"・":"")+"職人"+a+(c?"・掃除"+c:"")+"　計"+(a+u+c)+"名"}
+function bys(a,b){return(a.s||0)-(b.s||0)}
+function merge(a,b){var m={};a.concat(b).forEach(function(i){var c=m[i.id];if(!c||(i.t||0)>(c.t||0))m[i.id]=i});return Object.keys(m).map(function(k){return m[k]})}
+function typing(){var a=document.activeElement;return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA")&&a.closest("#main")}
+function status(m){$("st").textContent=m}
+function token(){var acc=pca.getActiveAccount();return pca.acquireTokenSilent({scopes:SC,account:acc}).then(function(r){return r.accessToken}).catch(function(){pca.acquireTokenRedirect({scopes:SC});return new Promise(function(){})})}
+function gr(m,b){return token().then(function(t){var h={Authorization:"Bearer "+t};if(b)h["Content-Type"]="application/json";return fetch(URL_F,{method:m,headers:h,body:b})})}
+function load(){return gr("GET").then(function(r){if(r.status===404)return null;if(!r.ok)throw new Error("load "+r.status);return r.json()})}
+function push(){clearTimeout(timer);status("同期待ち…");timer=setTimeout(doSync,600)}
+function doSync(){if(busy){timer=setTimeout(doSync,500);return}busy=true;status("同期中…");
+load().then(function(r){all=merge(all,(r&&r.items)||[]);return gr("PUT",JSON.stringify({v:1,items:all}))})
+.then(function(r){if(!r.ok)throw new Error("save "+r.status);status("同期済み");busy=false;if(!typing())render()})
+.catch(function(){busy=false;status("同期失敗：再試行中");setTimeout(push,5000)})}
+function pull(force){if(busy||(!force&&(document.hidden||typing())))return;busy=true;if(force)status("更新中…");
+load().then(function(r){busy=false;if(r){var b=JSON.stringify(all);all=merge(all,r.items||[]);if(force||JSON.stringify(all)!==b){if(!typing())render()}}status("同期済み")}).catch(function(){busy=false;status("オフライン")})}
+function curP(){return K("p").filter(function(x){return x.id===pid})[0]||null}
+function dfmt(dt){var d=new Date(dt+"T00:00:00");return(d.getMonth()+1)+"/"+d.getDate()+"（"+"日月火水木金土"[d.getDay()]+"）"}
+function ymd(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function calc(p){var ds=K("d").filter(function(d){return d.p===p.id}).sort(function(a,b){return a.dt<b.dt?-1:a.dt>b.dt?1:0}),cnt={},cars=0,tot=0;
+ds.forEach(function(d){cars+=+d.cnt||0;(d.m||[]).forEach(function(w){cnt[w]=(cnt[w]||0)+1;tot++})});
+var rows=[],lab=0,cl=0,lu=0,nk=0,nu=0,nc=0,mv=0,ex=0,ot=0;
+K("w").sort(bys).forEach(function(w){var c=cnt[w.id]||0;if(!c)return;var q=rate(p,w),wg=role(w)==="u"?0:c*q.r,m=q.m,e=q.e,o=q.o;rows.push({w:w,c:c,wg:wg,m:m,e:e,o:o,sum:wg+m+e+o});var ro=role(w);if(ro==="c"){cl+=wg;nc+=c}else if(ro==="u"){lu+=wg;nu+=c}else{lab+=wg;nk+=c}mv+=m;ex+=e;ot+=o});
+var gas=p.ef>0?(p.km||0)/p.ef*(p.gp||0):0,hotel=(p.hn||0)*(p.hp||0)*(p.hd||0),ex2=xs(p).reduce(function(a,x){return a+(+x.a||0)},0),oth=ex2+hotel,total=lab+cl+mv+ex+ot+oth;
+return{ds:ds,cars:cars,tot:tot,rows:rows,lab:lab,cl:cl,lu:lu,nk:nk,nu:nu,nc:nc,mv:mv,ex:ex,ot:ot,gas:gas,hotel:hotel,ex2:ex2,oth:oth,total:total,bal:(p.v||0)-total,hint:Math.ceil(((p.hw||0)+gas)/1000)*1000}}
+function xs(p){return p.xs||[{n:"駐車場",a:p.pk||0},{n:"食事",a:p.ml||0},{n:"飲み物等",a:p.dr||0},{n:"エスカ",a:p.es||0},{n:"材料1",a:p.m1||0},{n:"材料2",a:p.m2||0},{n:"材料3",a:p.m3||0}]}
+function setXs(p,fn){var a=xs(p).map(function(x){return{n:x.n,a:x.a}});fn(a);p.xs=a;touch(p)}
+function vr(l,id,f,v){return'<div class="vr"><span>'+l+'</span><input type="number" inputmode="decimal" step="any" data-id="'+id+'" data-f="'+f+'" data-n="1" value="'+(v==null?"":v)+'"></div>'}
+function num(l,id,f,v){return'<label>'+l+'<input type="number" inputmode="decimal" step="any" data-id="'+id+'" data-f="'+f+'" data-n="1" value="'+(v==null?"":v)+'"></label>'}
+function txt(l,id,f,v,cls){return'<label>'+l+'<input data-id="'+id+'" data-f="'+f+'" value="'+esc(v)+'"></label>'}
+function dbtn(id){return'<button class="del" data-del="'+id+'">'+(armed===id?"もう一度押して削除":"削除")+'</button>'}
+function vDays(p){var c=calc(p),ws=K("w").sort(bys),h="";
+if(!ws.length)h+='<div class="emp">先に「職人」タブで職人を登録してください。</div>';
+
+c.ds.forEach(function(d){var m=d.m||[],wd=new Date(d.dt+"T00:00:00").getDay();
+h+='<div class="card day"><div class="dh"><input type="date" data-id="'+d.id+'" data-f="dt" value="'+esc(d.dt)+'"><b style="color:'+(wd===0?"#d33":wd===6?"#2f6fcf":"inherit")+'">'+dfmt(d.dt).slice(-3)+'</b><span class="sub">'+cn(m,ws)+'</span>'+dbtn(d.id)+'</div>'+
+'<div class="row">'+txt("作業箇所",d.id,"loc",d.loc)+num("台数",d.id,"cnt",d.cnt)+'</div>'+
+'<label class="memo ns">売り止め<textarea rows="2" data-id="'+d.id+'" data-f="ns">'+esc(d.ns)+'</textarea></label>'+
+'<label class="memo kt">勝手<textarea rows="2" data-id="'+d.id+'" data-f="kt">'+esc(d.kt)+'</textarea></label>'+
+'<div class="chips">'+ws.map(function(w){return'<button class="chip '+role(w)+(m.indexOf(w.id)>=0?" on":"")+'" data-tg="'+d.id+'" data-w="'+w.id+'">'+esc(w.n)+'</button>'}).join("")+'</div></div>'});
+return h+'<div style="margin:12px"><button class="btn p" style="width:100%" id="ad">＋ 日を追加</button></div>'}
+function wcard(p,c){if(!c.rows.length)return"";return'<div class="sub" style="margin:10px 14px 0">この案件の金額です。日程で選んだ人だけ表示されます。</div>'+c.rows.map(function(r){var q=rate(p,r.w),id=r.w.id;function f(l,k){return'<label>'+l+'<input type="number" inputmode="decimal" step="any" data-pw="'+id+'" data-pf="'+k+'" value="'+q[k]+'"></label>'}return'<div class="card" style="border-left:10px solid '+wcol(r.w)+'"><div class="dh"><b>'+esc(r.w.n)+'</b><span class="rt '+role(r.w)+'">'+RN[role(r.w)]+'</span><span class="sub">'+r.c+'人工</span></div><div class="g2" style="margin-top:4px">'+(role(r.w)==="u"?"":f("日当","r"))+f("移動費","m")+f("諸経費","e")+f("その他","o")+'</div></div>'}).join("")}
+function vPW(p){var c=calc(p);if(!c.rows.length)return'<div class="emp">「日程」で人を選ぶと、ここにその案件の金額が出ます。</div>';return wcard(p,c)+'<div class="sub" style="margin:10px 14px">名前・区分・色の変更や、人の追加は、案件一覧の「職人の登録・編集」から行います。ここの金額は、この案件だけに反映されます。</div>'}
+function vCost(p){var c=calc(p),xl=xs(p);
+var xr=xl.map(function(x,i){return'<div class="vr"><input class="nm" data-xi="'+i+'" data-xf="n" value="'+esc(x.n)+'"><input type="number" inputmode="decimal" step="any" data-xi="'+i+'" data-xf="a" value="'+(x.a==null?"":x.a)+'" style="width:110px"></div>'}).join("");
+return'<div class="card"><label>案件名<input data-id="'+p.id+'" data-f="n" value="'+esc(p.n)+'"></label>'+vr("売上（円）",p.id,"v",p.v)+'</div>'+
+'<div class="card"><b>移動費まわり</b><div class="row" style="margin-top:8px">'+num("高速代",p.id,"hw",p.hw)+'</div><div class="row">'+num("距離(km)",p.id,"km",p.km)+num("燃費(km/L)",p.id,"ef",p.ef)+num("ガソリン単価",p.id,"gp",p.gp)+'</div>'+
+'<div class="kv"><span>ガソリン代（計算）</span><span>'+yen(c.gas)+'円</span></div><div class="kv"><span>移動費の目安（千円切上）</span><span>'+yen(c.hint)+'円</span></div><div class="sub" style="margin-top:6px">目安は、高速代とガソリン代の合計を千円単位に切り上げた金額です。受け元の「移動費」に入れる金額の参考にしてください。</div></div>'+
+'<div class="card"><b>宿泊</b><div class="row" style="margin-top:8px">'+num("1泊単価",p.id,"hn",p.hn)+num("人数",p.id,"hp",p.hp)+num("泊数",p.id,"hd",p.hd)+'</div>'+'<div class="kv"><span>宿泊費（計算）</span><span>'+yen(c.hotel)+'円</span></div></div>'+
+'<div class="card"><b>その他の経費</b><div class="sub" style="margin:4px 0 6px">項目名は書き換えられます。使わない項目は金額を空のままにしてください。</div>'+xr+'<div class="kv"><span>その他の経費 合計</span><span>'+yen(c.ex2)+'円</span></div><button class="btn" data-xa="1" style="width:100%;margin-top:8px">＋ 項目を追加</button></div>'+
+'<div style="text-align:center">'+dbtn(p.id).replace("削除","この案件を削除")+'</div>'}
+function vRes(p){var c=calc(p),h='<div class="card bal '+(c.bal<0?"n":"p")+'"><div class="sub">残金（売上 − 経費合計）</div><div class="big '+(c.bal<0?"neg":"pos")+'">'+yen(c.bal)+'円</div>'+
+'<div class="kv"><span>売上</span><span>'+yen(p.v||0)+'円</span></div><div class="kv"><span>経費合計</span><span>'+yen(c.total)+'円</span></div></div>'+
+'<div class="card"><b>経費の内訳</b>'+[["人件費（職人）",c.lab],["人件費（掃除）",c.cl],["運転代及び移動費",c.mv],["諸経費",c.ex],["職人用その他",c.ot],["宿泊費",c.hotel],].concat(xs(p).map(function(x){return[x.n,+x.a||0]})).map(function(r){return'<div class="kv"><span>'+r[0]+'</span><span>'+yen(r[1])+'円</span></div>'}).join("")+'</div>'+
+'<div class="card"><b>作業のまとめ</b><div class="kv"><span>作業日数</span><span>'+c.ds.length+'日</span></div><div class="kv"><span>合計台数</span><span>'+yen(c.cars)+'台</span></div><div class="kv"><span>職人の延べ人数</span><span>'+c.nk+'人工</span></div><div class="kv"><span>受け元の延べ人数</span><span>'+c.nu+'人工</span></div><div class="kv"><span>掃除の延べ人数</span><span>'+c.nc+'人工</span></div><div class="kv"><span>合計の延べ人数</span><span>'+c.tot+'人工</span></div></div>'+
+'<div class="card"><b>人別の支払い</b><div class="tw"><table><tr><th>名前</th><th>人工</th><th>日当</th><th>移動費</th><th>諸経費</th><th>その他</th><th>合計</th></tr>'+c.rows.map(function(r){return'<tr><td>'+esc(r.w.n)+'<br><span class="rt '+role(r.w)+'">'+RN[role(r.w)]+'</span></td><td>'+r.c+'</td><td>'+yen(r.wg)+'</td><td>'+yen(r.m)+'</td><td>'+yen(r.e)+'</td><td>'+yen(r.o)+'</td><td>'+yen(r.sum)+'</td></tr>'}).join("")+(function(){var t=c.rows.reduce(function(a,r){a.c+=r.c;a.wg+=r.wg;a.m+=r.m;a.e+=r.e;a.o+=r.o;a.s+=r.sum;return a},{c:0,wg:0,m:0,e:0,o:0,s:0});return'<tr class="tt"><td>合計</td><td>'+t.c+'</td><td>'+yen(t.wg)+'</td><td>'+yen(t.m)+'</td><td>'+yen(t.e)+'</td><td>'+yen(t.o)+'</td><td>'+yen(t.s)+'</td></tr>'})()+'</table></div></div>';return h}
+function vWork(){var ws=K("w").sort(bys),h='<div class="sub" style="margin:10px 14px 0">ここでは、名前・区分・色を決めます。金額は、案件の「職人」タブで案件ごとに入れます。区分が「受け元」の人は、日当を計算せず、移動費などだけを計算します。人数には数えますが、職人数には入れません。左端の色は、印刷の背景色です。</div>';
+ws.forEach(function(w){h+='<div class="card" style="border-left:10px solid '+wcol(w)+'"><div class="dh" style="flex-wrap:wrap"><input type="color" data-id="'+w.id+'" data-f="col" value="'+wcol(w)+'" style="width:44px;height:38px;padding:2px;flex:none"><input data-id="'+w.id+'" data-f="n" value="'+esc(w.n)+'" style="width:auto;flex:1 1 90px;min-width:0"><select data-id="'+w.id+'" data-f="role" style="width:auto;flex:none">'+[["k","職人"],["u","受け元"],["c","掃除"]].map(function(o){return'<option value="'+o[0]+'"'+(role(w)===o[0]?" selected":"")+'>'+o[1]+'</option>'}).join("")+'</select>'+dbtn(w.id)+'</div></div>'});
+h+='<div class="card"><b>職人を追加</b><div class="row" style="margin-top:8px"><label>名前<input id="wn"></label><label>区分<select id="wk"><option value="k">職人</option><option value="u">受け元（日当なし）</option><option value="c">掃除</option></select></label></div><button class="btn p" id="wa" style="width:100%;margin-top:8px">追加</button></div>'+
+'';return h}
+function vPrint(p){var c=calc(p),ds=c.ds;if(!ds.length)return'<div class="emp">日程タブで日を入力すると、ここに印刷用の表が出ます。</div>';
+var ws=K("w").sort(bys),map={};ds.forEach(function(d){map[d.dt]=d});
+var f=new Date(ds[0].dt+"T00:00:00");f.setDate(f.getDate()-((f.getDay()+6)%7));
+var last=new Date(ds[ds.length-1].dt+"T00:00:00"),weeks=[];
+while(f<=last){var wk=[];for(var i=0;i<7;i++){var x=new Date(f);x.setDate(f.getDate()+i);wk.push(x)}weeks.push(wk);f.setDate(f.getDate()+7)}
+var h='<div class="noprint" style="margin:10px 12px"><button class="btn p" id="pr" style="width:100%">印刷 / PDFにする</button><div class="sub" style="margin-top:6px">表は横にスクロールできます。印刷はA4縦で、1枚に3週間ずつ入ります。ボタンを押しても印刷画面が出ないときは、Safariで開いて、共有ボタンから「プリント」を選んでください。</div></div>';
+for(var g=0;g<weeks.length;g+=3){h+='<div class="pg"><div class="ptt">'+esc(p.n)+'</div>';
+weeks.slice(g,g+3).forEach(function(wk){
+var cells=wk.map(function(x){var d=map[ymd(x)],m=d?ws.filter(function(w){return(d.m||[]).indexOf(w.id)>=0}):[],a=m.filter(function(w){return role(w)==="k"}),u=m.filter(function(w){return role(w)==="u"}),b=m.filter(function(w){return role(w)==="c"});return{x:x,d:d,a:a,u:u,b:b,names:m.filter(function(w){return role(w)!=="c"}).concat(b)}});
+var n=14;cells.forEach(function(q){if(q.names.length>n)n=q.names.length});
+function r(lb,fn,cls){return'<tr><td class="lb">'+lb+'</td>'+cells.map(function(q){return'<td class="'+(cls||"")+'">'+fn(q)+'</td>'}).join("")+'</tr>'}
+h+='<div class="pw"><table class="pt">'+
+r("作業日",function(q){var wd=q.x.getDay();return'<span style="color:'+(wd===0?"#c00":wd===6?"#1d4ed8":"#000")+'">'+(q.x.getMonth()+1)+"月"+q.x.getDate()+"日<br>"+"日月火水木金土"[wd]+'</span>'},"dd")+
+r("売り止め",function(q){return q.d?esc(q.d.ns):""},"t h1")+
+r("作業箇所",function(q){return q.d?esc(q.d.loc):""})+
+r("台数",function(q){return q.d&&q.d.cnt?q.d.cnt+"台":""})+
+r("勝手",function(q){return q.d?esc(q.d.kt):""},"t h2")+
+r("職人数",function(q){return q.a.length?q.a.length+"人":""})+
+r("掃除",function(q){return q.b.length?q.b.length+"人":""})+
+r("メンバー",function(q){var s="";for(var i=0;i<n;i++)s+='<div'+(q.names[i]?' style="background:'+wcol(q.names[i])+'"':'')+'>'+(q.names[i]?esc(q.names[i].n):"")+'</div>';return s},"mem")+'</table></div>'});
+h+='</div>'}
+return h}
+function vList(){var ps=K("p").sort(function(a,b){return(b.s||0)-(a.s||0)}),h='<div class="card"><b>新しい案件</b><div class="row" style="margin-top:8px"><input id="npn" placeholder="案件名（例：ホテルGV新大阪）"><button class="btn p" id="mk">作成</button></div></div>';
+if(!ps.length)h+='<div class="emp">案件がまだありません。<br>上の欄に名前を入れて作成してください。</div>';
+ps.forEach(function(p){var c=calc(p),n=c.ds.length,rg=n?dfmt(c.ds[0].dt).slice(0,-3)+"〜"+dfmt(c.ds[n-1].dt).slice(0,-3):"日程なし";
+h+='<div class="card pj" data-open="'+p.id+'"><div class="pn">'+esc(p.n)+'</div><div class="sub">'+rg+'　'+n+'日　売上 '+yen(p.v||0)+'円</div><div class="pb '+(c.bal<0?"neg":"pos")+'">残金 '+yen(c.bal)+'円</div></div>'});
+return h+'<div style="margin:14px 12px"><button class="btn" id="wk" style="width:100%">職人の登録・編集</button></div>'}
+function render(){var p=curP();if(view==="proj"&&!p)view="list";
+var hr,h,rf='<button class="btn" id="rf">↻</button>';
+if(view==="list"){hr='<b class="ttl">案件一覧</b>'+rf;h=vList()}
+else if(view==="work"){hr='<button class="btn" id="bk">‹ 戻る</button><b class="ttl">職人の登録</b>'+rf;h=vWork()}
+else{hr='<button class="btn" id="bk">‹ 案件一覧</button><b class="ttl">'+esc(p.n)+'</b>'+rf;h=tab==="w"?vPW(p):tab==="d"?vDays(p):tab==="x"?vCost(p):tab==="p"?vPrint(p):vRes(p)}
+$("hr").innerHTML=hr;
+document.querySelector("nav").style.display=view==="proj"?"flex":"none";
+Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){b.className=b.dataset.tab===tab?"on":""});
+$("main").innerHTML=h}
+function del(id){var it=find(id);if(!it)return;it.x=1;touch(it);if(it.k==="p")all.forEach(function(d){if(d.k==="d"&&d.p===id){d.x=1;touch(d)}})}
+document.addEventListener("click",function(e){var t=e.target,ds=t.dataset;if(!ds)return;var o=t.closest?t.closest("[data-open]"):null;if(o){pid=o.dataset.open;view="proj";tab="d";armed=null;render();window.scrollTo(0,0);return}
+if(t.id==="bk"){view="list";armed=null;render();window.scrollTo(0,0)}
+else if(t.id==="wk"){view="work";render();window.scrollTo(0,0)}
+else if(t.id==="mk"){var nn=$("npn").value.trim();if(nn){var np=add({k:"p",s:Date.now(),n:nn,v:0});pid=np.id;view="proj";tab="d";render();window.scrollTo(0,0);push()}}
+else if(t.id==="rf"){pull(true)}
+else if(ds.tab){tab=ds.tab;armed=null;render();window.scrollTo(0,0)}
+else if(ds.xa){var pa=curP();setXs(pa,function(a){a.push({n:"新しい項目",a:0})});render();push()}
+else if(ds.xd!==undefined){var xk="x"+ds.xd;if(armed===xk){armed=null;setXs(curP(),function(a){a.splice(+ds.xd,1)});render();push()}else{armed=xk;render()}}
+else if(ds.tg){var d=find(ds.tg),m=(d.m||[]).slice(),i=m.indexOf(ds.w);if(i>=0)m.splice(i,1);else m.push(ds.w);d.m=m;touch(d);render();push()}
+else if(ds.del){if(armed===ds.del){armed=null;del(ds.del);render();push()}else{armed=ds.del;render()}}
+else if(t.id==="ad"){var p=curP(),l=calc(p).ds,last=l.length?l[l.length-1].dt:null,dt=new Date();if(last){dt=new Date(last+"T00:00:00");dt.setDate(dt.getDate()+1)}add({k:"d",p:p.id,dt:ymd(dt),loc:"",cnt:0,ns:"",kt:"",m:[]});render();push()}
+else if(t.id==="pr"){window.print()}
+else if(t.id==="wa"){var n=$("wn").value.trim();if(n){add({k:"w",s:Date.now(),n:n,r:0,m:0,e:0,o:0,role:$("wk").value});render();push()}}
+else if(t.id==="wi"){var b=Date.now();$("wt").value.split("\n").forEach(function(ln,i){var f=ln.split(/[,\t]/).map(function(x){return x.trim()});if(!f[0])return;add({k:"w",s:b+i,n:f[0],r:+f[1]||0,m:+f[2]||0,e:+f[3]||0,o:+f[4]||0,role:f[5]==="2"?"u":f[5]==="1"?"c":"k",col:/^[0-9a-fA-F]{6}$/.test(f[6]||"")?f[6]:undefined})});render();push()}});
+document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;if(ds&&ds.xi!==undefined){var pp=curP();if(pp){setXs(pp,function(a){var x=a[+ds.xi];if(!x)return;if(ds.xf==="n")x.n=t.value.trim()||"（項目名）";else x.a=parseFloat(t.value)||0});render();push()}return}
+if(ds&&ds.pw){var p2=curP();if(p2){var w2=find(ds.pw);if(w2){var cur=rate(p2,w2);cur[ds.pf]=parseFloat(t.value)||0;p2.pw=Object.assign({},p2.pw);p2.pw[w2.id]=cur;touch(p2);render();push()}}return}
+if(!ds||!ds.id||!ds.f)return;var it=find(ds.id);if(!it)return;
+if(it.k==="w"&&/^[rmeo]$/.test(ds.f)){K("p").forEach(function(pp){if(pp.pw&&pp.pw[it.id])return;pp.pw=Object.assign({},pp.pw);pp.pw[it.id]=rate({},it);touch(pp)})}
+it[ds.f]=ds.b?t.checked:ds.n?(parseFloat(t.value)||0):t.value;if(ds.f==="n"&&!it[ds.f])it[ds.f]="（名前なし）";touch(it);render();push()});
+$("lg").onclick=function(){pca.loginRedirect({scopes:SC})};
+function start(){$("login").style.display="none";$("app").style.display="block";status("読み込み中…");
+var SEED=[{id:"w0",k:"w",s:1,n:"森岡哲也",r:0,m:27000,e:700,o:8000,role:"u",col:"F4CCCC",t:1},{id:"w1",k:"w",s:2,n:"木田健一郎",r:50000,m:0,e:0,o:0,role:"k",col:"FCE5CD",t:1},{id:"w2",k:"w",s:3,n:"柏木竣太",r:50000,m:0,e:0,o:0,role:"k",col:"FFF2CC",t:1},{id:"w3",k:"w",s:4,n:"田崎一也",r:50000,m:0,e:0,o:0,role:"k",col:"D9EAD3",t:1},{id:"w4",k:"w",s:5,n:"安藤匡摩",r:50000,m:0,e:0,o:0,role:"k",col:"D0E0E3",t:1},{id:"w5",k:"w",s:6,n:"皆川豪志",r:50000,m:0,e:0,o:0,role:"k",col:"CFE2F3",t:1},{id:"w6",k:"w",s:7,n:"山田楓",r:50000,m:0,e:0,o:0,role:"k",col:"D9D2E9",t:1},{id:"w7",k:"w",s:8,n:"石川昌和",r:50000,m:0,e:0,o:0,role:"k",col:"EAD1DC",t:1},{id:"w8",k:"w",s:9,n:"岡林正人",r:50000,m:0,e:0,o:0,role:"k",col:"E6B8AF",t:1},{id:"w9",k:"w",s:10,n:"田窪正衛",r:50000,m:0,e:0,o:0,role:"k",col:"F9CB9C",t:1},{id:"w10",k:"w",s:11,n:"高見了司",r:50000,m:0,e:0,o:0,role:"k",col:"FFE599",t:1},{id:"w11",k:"w",s:12,n:"松浦千愛",r:25000,m:0,e:0,o:0,role:"c",col:"EA9999",t:1},{id:"w12",k:"w",s:13,n:"佐藤大典",r:25000,m:0,e:0,o:0,role:"c",col:"F9B37C",t:1}];
+load().then(function(r){all=(r&&r.items)||[];var seeded=false;if(!all.length){SEED.forEach(function(o){o.t=Date.now();all.push(o)});seeded=true}render();if(seeded)push();status("同期済み");setInterval(function(){pull(false)},10000);document.addEventListener("visibilitychange",function(){if(!document.hidden)pull(false)})})
+.catch(function(e){status("読み込み失敗："+e.message)})}
+try{pca=new msal.PublicClientApplication({auth:{clientId:CLIENT_ID,authority:"https://login.microsoftonline.com/consumers",redirectUri:location.origin+location.pathname},cache:{cacheLocation:"localStorage"}});
+pca.initialize().then(function(){return pca.handleRedirectPromise()}).then(function(r){var a=(r&&r.account)||pca.getAllAccounts()[0];if(a){pca.setActiveAccount(a);start()}else{$("login").style.display="block"}})
+.catch(function(e){$("login").style.display="block";$("lerr").textContent="ログインエラー："+e.message})
+}catch(e){$("login").style.display="block";$("lerr").textContent="読み込みエラー："+e.message}
+</script>
+</body>
+</html>
