@@ -726,15 +726,52 @@ async function renderHome(){
     <div class="m"><b>${esc(m.site||"（現場名なし）")}</b><span>${esc(m.to||"送付先なし")}・${fmt(m.date)}・${m.count}枚</span>${m.id===cur.id?'<span class="now">編集中</span>':""}</div><span style="color:#bbb;font-size:22px">›</span></div>`).join("");
 }
 const FRAME_MSG="この画面（Claude内の表示）では保存・印刷が使えません。<br>GitHub Pagesに置いたURLをSafariで開くと、<b>PDF・Excel</b>どちらも保存できます。<br><br>今はプレビューで仕上がりを確認できます。";
+function loadJs(u){return new Promise((ok,ng)=>{const sc=document.createElement("script");sc.src=u;sc.onload=ok;sc.onerror=()=>ng(new Error("読み込めませんでした（電波を確認してください）"));document.head.appendChild(sc)})}
+let pdfBusy=false;
 $("pdfBtn").onclick=async()=>{
   if(IN_FRAME){await ask(FRAME_MSG,true);show("prev");return}
-  renderPreview();
-  const imgs=[...$("preview").querySelectorAll("img")];
-  await Promise.all(imgs.map(im=>im.complete?1:new Promise(r=>{im.onload=im.onerror=r})));
-  document.title=fileBase();
-  toast("印刷画面で「PDFとして保存」または共有→保存");
-  setTimeout(()=>{try{window.print()}catch(e){}},300);
+  if(pdfBusy)return;
+  if(!photos.length&&!await ask("写真がまだありません。このまま作りますか？"))return;
+  pdfBusy=true;const btn=$("pdfBtn");btn.textContent="作成中…";btn.disabled=true;
+  const host=document.createElement("div");
+  host.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;background:#fff;z-index:-1";
+  try{
+    await Promise.all([window.html2canvas?0:loadJs("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"),window.jspdf?0:loadJs("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js")]);
+    host.innerHTML=pagesHTML().join("");document.body.appendChild(host);
+    const imgs=[...host.querySelectorAll("img")];
+    await Promise.all(imgs.map(im=>im.decode?im.decode().catch(()=>{}):0));
+    // html2canvasは object-fit に対応していないので、写真の大きさを計算して入れる
+    host.querySelectorAll(".pic img").forEach(im=>{
+      const box=im.parentElement,bw=box.clientWidth,bh=box.clientHeight,nw=im.naturalWidth||4,nh=im.naturalHeight||3;
+      const sc=Math.min(bw/nw,bh/nh);im.style.width=Math.floor(nw*sc)+"px";im.style.height=Math.floor(nh*sc)+"px";im.style.objectFit="fill";
+    });
+    const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",compress:true});
+    const pages=[...host.querySelectorAll(".page")];
+    for(let k=0;k<pages.length;k++){
+      btn.textContent=`作成中 ${k+1}/${pages.length}`;
+      const cv=await window.html2canvas(pages[k],{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false});
+      if(k>0)pdf.addPage();
+      pdf.addImage(cv.toDataURL("image/jpeg",0.9),"JPEG",0,0,210,297);
+    }
+    const blob=pdf.output("blob");
+    const name=fileBase()+".pdf";
+    const file=new File([blob],name,{type:"application/pdf"});
+    if(odOn){odReq("PUT",`PDF/${odName(info.to||"送付先なし")}/${odName(fileBase())}.pdf`,blob,"application/pdf").then(r=>toast(r.ok?"OneDriveの「PDF」フォルダにも保存しました":"OneDriveへの保存に失敗しました")).catch(()=>toast("OneDriveへの保存に失敗しました"))}
+    pdfReady(file,pages.length);
+  }catch(e){console.error(e);ask("PDFを作れませんでした。<br>"+esc(e.message||e),true)}
+  finally{if(host.parentNode)host.remove();btn.textContent="PDF";btn.disabled=false;pdfBusy=false}
 };
+function pdfReady(file,n){
+  $("mbT").innerHTML=`PDFができました（${n}ページ）。<br>「共有・保存」を押して、送る相手やアプリ、<br>または「"ファイル"に保存」「プリント」を選んでください。`;
+  $("mbN").style.display="";$("mbN").textContent="閉じる";$("mbY").textContent="共有・保存";$("mb").style.display="flex";
+  const reset=()=>{$("mb").style.display="none";$("mbN").textContent="やめる";$("mbY").textContent="OK"};
+  $("mbN").onclick=reset;
+  $("mbY").onclick=()=>{
+    reset();
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:file.name}).catch(e=>{if(e&&e.name!=="AbortError")toast("共有できませんでした")});return}
+    const u=URL.createObjectURL(file),a=document.createElement("a");a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
+  };
+}
 $("xlBtn").onclick=async()=>{
   if(IN_FRAME){await ask(FRAME_MSG,true);return}
   if(!photos.length&&!await ask("写真がまだありません。このまま作りますか？"))return;
