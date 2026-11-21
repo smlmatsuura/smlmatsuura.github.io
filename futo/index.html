@@ -1,1 +1,464 @@
-a
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="封筒印刷">
+<title>封筒印刷（長形3号）</title>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<style>
+:root{--bg:#f4f4f2;--card:#fff;--ink:#1c1c1c;--sub:#777;--line:#e2e2de;--acc:#1f5f8b;--danger:#b23b3b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px}
+header{position:sticky;top:0;z-index:10;background:var(--bg);padding:calc(env(safe-area-inset-top) + 10px) 14px 8px;border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:8px}
+h1{font-size:19px;margin:0;flex:1}
+h1 small{font-size:12px;color:var(--sub);font-weight:normal;margin-left:6px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.dan{color:var(--danger)}
+button:disabled{opacity:.4}
+.search{display:flex;gap:6px;margin-top:8px}
+.search input{flex:1;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:8px 10px;font-size:14px}
+.seg button.on{background:var(--ink);color:#fff}
+.idx{display:flex;gap:4px;overflow-x:auto;margin-top:8px;padding-bottom:2px}
+.idx button{padding:4px 0;min-width:34px;font-size:14px;border-radius:8px}
+.idx button.off{opacity:.3}
+main{padding:6px 12px 120px}
+.gh{font-size:13px;color:var(--sub);margin:14px 4px 4px;font-weight:bold}
+.item{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.item .t{flex:1;min-width:0}
+.item .c{font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .n{font-size:14px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .a{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item input[type=checkbox]{width:22px;height:22px}
+.empty{text-align:center;color:var(--sub);margin-top:40px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);display:flex;gap:8px;z-index:20}
+.bar button{flex:1;padding:12px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.sheet.show{display:flex}
+.panel{background:var(--bg);width:100%;max-width:640px;max-height:94vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 16px)}
+.ptitle{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ptitle b{flex:1;font-size:17px}
+.prev{background:#fff;border:1px solid var(--line);border-radius:6px;width:100%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+label{display:block;font-size:13px;color:var(--sub);margin:10px 2px 4px}
+.f input,.f textarea,.f select{width:100%;font-size:16px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;font-family:inherit}
+.f textarea{resize:vertical;min-height:44px}
+.two{display:flex;gap:8px}.two>div{flex:1}
+.btns{display:flex;gap:8px;margin-top:14px}.btns button{flex:1;padding:12px}
+.note{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.6}
+#login{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+#login p{color:var(--sub);line-height:1.6}
+#login h1{flex:none;font-size:24px;margin-bottom:6px}
+#st{font-size:12px;color:var(--sub);margin-top:4px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;transition:.3s;z-index:99;pointer-events:none}
+.toast.show{opacity:.92}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>封筒印刷<small>長形3号</small></h1>
+    <button id="bSel">選択</button>
+    <button id="bSet">⚙</button>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="検索（会社・名前・住所）">
+    <div class="seg"><button data-s="co" class="on">会社</button><button data-s="nm">名前</button></div>
+  </div>
+  <div class="idx" id="idx"></div>
+  <div id="st"></div>
+</header>
+<main id="list"></main>
+<div class="bar" id="bar">
+  <button class="pri" id="bAdd">＋ 新しい宛先</button>
+</div>
+
+<!-- 詳細 -->
+<div class="sheet" id="shView"><div class="panel">
+  <div class="ptitle"><b id="vTitle"></b><button id="vClose">閉じる</button></div>
+  <canvas class="prev" id="vCan"></canvas>
+  <div class="btns"><button class="pri" id="vPrint">PDFを作って印刷</button></div>
+  <div class="btns"><button id="vEdit">編集</button><button id="vDup">複製</button><button class="dan" id="vDel">削除</button></div>
+</div></div>
+
+<!-- 編集 -->
+<div class="sheet" id="shEdit"><div class="panel f">
+  <div class="ptitle"><b id="eTitle">宛先</b><button id="eCancel">やめる</button></div>
+  <canvas class="prev" id="eCan"></canvas>
+  <div class="two">
+    <div><label>郵便番号</label><input id="e_zip" inputmode="numeric" placeholder="541-0051"></div>
+    <div style="flex:0 0 auto"><label>&nbsp;</label><button id="eZip" type="button">住所を検索</button></div>
+  </div>
+  <label>住所</label><input id="e_addr1" placeholder="大阪府大阪市中央区…">
+  <label>建物名・階</label><input id="e_addr2" placeholder="○○ビル3階">
+  <label>会社名</label><input id="e_company">
+  <label>会社名のよみ（並び順に使います・ひらがな）</label><input id="e_companyKana" placeholder="おおばやしふぁしりてぃーず">
+  <label>部署（改行で2行にできます）</label><textarea id="e_dept" rows="2"></textarea>
+  <div class="two">
+    <div><label>氏名</label><input id="e_name" placeholder="山田　太郎"></div>
+    <div style="flex:0 0 88px"><label>敬称</label><select id="e_honor"><option>様</option><option>御中</option><option>殿</option><option value="">なし</option></select></div>
+  </div>
+  <label>氏名のよみ</label><input id="e_nameKana" placeholder="やまだ たろう">
+  <label>メモ（印刷されません）</label><input id="e_memo">
+  <div class="note">氏名が空で敬称が「様」のときは、自動で会社名（部署）に「御中」を付けます。</div>
+  <div class="btns"><button class="pri" id="eSave">保存</button></div>
+</div></div>
+
+<!-- 設定 -->
+<div class="sheet" id="shSet"><div class="panel f">
+  <div class="ptitle"><b>設定</b><button id="sClose">閉じる</button></div>
+  <label>差出人（1行目は大きめ）</label>
+  <textarea id="s_from" rows="4"></textarea>
+  <div class="two">
+    <div><label>位置調整 左右（mm・＋で右）</label><input id="s_dx" type="number" step="0.5"></div>
+    <div><label>位置調整 上下（mm・＋で下）</label><input id="s_dy" type="number" step="0.5"></div>
+  </div>
+  <label><input type="checkbox" id="s_flip" style="width:auto"> 印刷の向きを逆にする（上下さかさまに出るとき）</label>
+  <div class="note">上下左右は封筒を横向き（宛名が読める向き）にしたときの方向です。</div>
+  <div class="btns"><button class="pri" id="sSave">設定を保存</button></div>
+  <label style="margin-top:22px">バックアップ（全 <span id="sCount"></span> 件）</label>
+  <div class="btns" style="margin-top:4px"><button id="sExport">書き出し</button><button id="sImport">読み込み</button></div>
+  <input type="file" id="sFile" accept=".json,application/json" style="display:none">
+  <div class="note">ログインしていれば、宛先はOneDriveで自動的にiPadと同じになります。書き出しは念のための控えです。</div>
+  <div class="btns" style="margin-top:18px"><button id="sLogin"></button></div>
+</div></div>
+
+<!-- PDF完成 -->
+<div class="sheet" id="shPdf"><div class="panel">
+  <div class="ptitle"><b id="pTitle">PDFができました</b><button id="pClose">閉じる</button></div>
+  <div class="note" id="pNote"></div>
+  <div class="btns"><button class="pri" id="pShare">共有・印刷</button><button id="pOpen">開く</button></div>
+</div></div>
+
+<div id="login"><h1>封筒印刷</h1><p>Microsoftアカウントでログインしてください。<br>宛先がOneDriveに保存され、iPadと共有できます。</p>
+<button class="pri" id="lg" style="padding:14px 26px;font-size:16px">Microsoftでログイン</button>
+<button id="lgSkip" style="margin-top:14px;border:0;background:none;color:var(--sub);font-size:14px">ログインせずに使う（この端末だけに保存）</button>
+<p id="lerr" style="color:var(--danger);font-size:13px"></p></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 初期データ（元PDFから取り込み） =====
+const SEED = [
+{"id":"s002","zip":"544-0021","addr1":"大阪市生野区勝山南4-5-2","addr2":"","company":"アイエフロックサービス","companyKana":"あいえふろっくさーびす","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s003","zip":"664-0001","addr1":"伊丹市荒巻4-8-20","addr2":"","company":"株式会社アクセス","companyKana":"あくせす","dept":"","name":"伊藤","nameKana":"いとう","honor":"様","memo":""},
+{"id":"s004","zip":"635-0823","addr1":"奈良県北葛城郡広陵町三吉254-14","addr2":"","company":"アクティブ防災センター","companyKana":"あくてぃぶぼうさいせんたー","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s005","zip":"532-0002","addr1":"大阪市淀川区東三国1-29-23","addr2":"","company":"株式会社アペック","companyKana":"あぺっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s006","zip":"550-0012","addr1":"大阪市西区立売堀1-6-17","addr2":"","company":"アマノ株式会社","companyKana":"あまの","dept":"大阪支店","name":"北山　雅章","nameKana":"きたやま まさあき","honor":"様","memo":""},
+{"id":"s007","zip":"604-8143","addr1":"京都市中京区阪東屋町662-2","addr2":"","company":"有限会社　アルテロックサービス","companyKana":"あるてろっくさーびす","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s008","zip":"550-0005","addr1":"大阪市西区西本町1-2-8","addr2":"","company":"アンダーツリー株式会社","companyKana":"あんだーつりー","dept":"建築部","name":"大塚","nameKana":"おおつか","honor":"様","memo":""},
+{"id":"s009","zip":"103-0028","addr1":"東京都中央区八重洲1-8-17","addr2":"新槇町ビル10F","company":"アンダーツリー株式会社","companyKana":"あんだーつりー","dept":"東京支社","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s010","zip":"185-0013","addr1":"東京都国分寺市西恋ヶ窪3-20-34","addr2":"","company":"株式会社一興舎","companyKana":"いっこうしゃ","dept":"","name":"吉野","nameKana":"よしの","honor":"様","memo":""},
+{"id":"s011","zip":"170-0012","addr1":"東京都豊島区上池袋2-26-10","addr2":"","company":"","companyKana":"いとうすすむ","dept":"","name":"伊藤　ススム","nameKana":"いとう すすむ","honor":"様","memo":""},
+{"id":"s012","zip":"651-2133","addr1":"神戸市西区枝吉4-188","addr2":"","company":"株式会社ウィライフサポートサービス","companyKana":"うぃらいふさぽーとさーびす","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s013","zip":"572-0054","addr1":"大阪府寝屋川市下神田町22番6号","addr2":"","company":"ウィンドリペアー","companyKana":"うぃんどりぺあー","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s014","zip":"666-0022","addr1":"兵庫県川西市下加茂２丁目4-1-715","addr2":"","company":"梅宮電気工事","companyKana":"うめみやでんきこうじ","dept":"","name":"梅宮","nameKana":"うめみや","honor":"様","memo":""},
+{"id":"s015","zip":"541-0052","addr1":"大阪市中央区安土町1-5-11","addr2":"トヤマビル東館4階95","company":"栄和建設株式会社","companyKana":"えいわけんせつ","dept":"","name":"友永","nameKana":"ともなが","honor":"様","memo":""},
+{"id":"s016","zip":"592-0011","addr1":"大阪府高石市加茂4-1-28","addr2":"","company":"エビスロック株式会社","companyKana":"えびすろっく","dept":"","name":"村田","nameKana":"むらた","honor":"様","memo":""},
+{"id":"s017","zip":"567-0064","addr1":"大阪府茨木市上野町18-18-3","addr2":"","company":"株式会社MKS","companyKana":"えむけーえす","dept":"","name":"石川","nameKana":"いしかわ","honor":"様","memo":""},
+{"id":"s018","zip":"562-0005","addr1":"大阪府箕面市新稲5-8-37","addr2":"","company":"MDハウス株式会社","companyKana":"えむでぃーはうす","dept":"","name":"三柴","nameKana":"みしば","honor":"様","memo":""},
+{"id":"s019","zip":"532-0033","addr1":"大阪市淀川区新高4-3-24","addr2":"","company":"LD Security","companyKana":"えるでぃーせきゅりてぃ","dept":"","name":"中本","nameKana":"なかもと","honor":"様","memo":""},
+{"id":"s020","zip":"561-0858","addr1":"大阪府豊中市服部西町2-7-30","addr2":"","company":"株式会社A・セキュリティ","companyKana":"えーせきゅりてぃ","dept":"","name":"安藤","nameKana":"あんどう","honor":"様","memo":""},
+{"id":"s021","zip":"565-0874","addr1":"大阪府吹田市古江台6-2-1","addr2":"","company":"大阪市福祉局","companyKana":"おおさかしふくしきょく","dept":"弘済院管理課　施設運営\n第2特別養護老人ホーム","name":"北村","nameKana":"きたむら","honor":"様","memo":""},
+{"id":"s022","zip":"532-0011","addr1":"大阪市淀川区西中島5-6-24","addr2":"","company":"大阪浜美屋ホールディングス株式会社","companyKana":"おおさかはまみやほーるでぃんぐす","dept":"管理本部","name":"マネージャー　横内","nameKana":"よこうち","honor":"様","memo":""},
+{"id":"s023","zip":"541-0051","addr1":"大阪市中央区備後町1-7-10","addr2":"","company":"大林ファシリティーズ株式会社","companyKana":"おおばやしふぁしりてぃーず","dept":"大阪支店　ビル管理部　集合住宅課","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s024","zip":"541-0051","addr1":"大阪市中央区備後町1-7-10","addr2":"","company":"大林ファシリティーズ株式会社","companyKana":"おおばやしふぁしりてぃーず","dept":"大阪支店　営業部　ＰＦＩ課","name":"マネージャー　富江","nameKana":"とみえ","honor":"様","memo":""},
+{"id":"s025","zip":"541-0051","addr1":"大阪市中央区備後町1-7-10","addr2":"","company":"大林ファシリティーズ株式会社","companyKana":"おおばやしふぁしりてぃーず","dept":"大阪支店　管理部　綜合会計課","name":"國廣","nameKana":"くにひろ","honor":"様","memo":""},
+{"id":"s001","zip":"541-0051","addr1":"大阪府大阪市中央区備後町1丁目7番10号","addr2":"ニッセイ備後町ビル3階","company":"大林ファシリティーズ株式会社　大阪支店","companyKana":"おおばやしふぁしりてぃーず","dept":"ビル管理部　ビル管理課","name":"恵井　政人","nameKana":"えい まさと","honor":"様","memo":""},
+{"id":"s026","zip":"536-0022","addr1":"大阪市城東区永田3-13-9-303","addr2":"","company":"かぎ当番","companyKana":"かぎとうばん","dept":"","name":"澤田","nameKana":"さわだ","honor":"様","memo":""},
+{"id":"s027","zip":"645-0011","addr1":"和歌山県田辺市新庄町1992-3","addr2":"","company":"株式会社カシワギロック","companyKana":"かしわぎろっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s028","zip":"577-0834","addr1":"東大阪市柏田本町14-10","addr2":"","company":"株式会社　川端","companyKana":"かわばた","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s029","zip":"531-0071","addr1":"大阪市北区中津1-11-1","addr2":"","company":"喜多野興業株式会社","companyKana":"きたのこうぎょう","dept":"","name":"取締役　松村","nameKana":"まつむら","honor":"様","memo":""},
+{"id":"s030","zip":"561-0844","addr1":"大阪府豊中市利倉2-12-5","addr2":"","company":"ＫＬＣ","companyKana":"けーえるしー","dept":"","name":"中本","nameKana":"なかもと","honor":"様","memo":""},
+{"id":"s031","zip":"630-0215","addr1":"奈良県生駒市東菜畑1-165","addr2":"ルネ東生駒403","company":"Ｋセキュリティシステム","companyKana":"けーせきゅりてぃしすてむ","dept":"","name":"黒田","nameKana":"くろだ","honor":"様","memo":""},
+{"id":"s032","zip":"533-0005","addr1":"大阪市東淀川区瑞光3-2-28","addr2":"","company":"光洋保安警備株式会社","companyKana":"こうようほあんけいび","dept":"","name":"専務取締役　水川","nameKana":"みずかわ","honor":"様","memo":""},
+{"id":"s033","zip":"532-0011","addr1":"大阪市淀川区西中島4-9-22","addr2":"","company":"株式会社コトブキ設備","companyKana":"ことぶきせつび","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s034","zip":"532-0026","addr1":"大阪府大阪市淀川区塚本1-8-13","addr2":"","company":"株式会社さくらロック","companyKana":"さくらろっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s035","zip":"130-0001","addr1":"東京都墨田区我妻橋3-2-5","addr2":"我妻橋ハイツ2F","company":"株式会社　ザ・レジェンド","companyKana":"ざれじぇんど","dept":"経理担当","name":"渡辺","nameKana":"わたなべ","honor":"様","memo":""},
+{"id":"s036","zip":"572-0086","addr1":"大阪府寝屋川市松屋町15-25","addr2":"","company":"システムロックサービス","companyKana":"しすてむろっくさーびす","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s037","zip":"573-0065","addr1":"大阪府枚方市出口2-1-16","addr2":"","company":"ジョウテック","companyKana":"じょうてっく","dept":"","name":"上里","nameKana":"うえさと","honor":"様","memo":""},
+{"id":"s038","zip":"560-0085","addr1":"大阪府豊中市上新田4-23-11","addr2":"ルミエール桃山101号","company":"有限会社　GSリフォーム","companyKana":"じーえすりふぉーむ","dept":"","name":"取締役社長　菅","nameKana":"すが","honor":"様","memo":""},
+{"id":"s039","zip":"540-0024","addr1":"大阪市中央区南新町2-2-5","addr2":"マルカビル4F","company":"株式会社セキュリティデザイン","companyKana":"せきゅりてぃでざいん","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s040","zip":"532-0025","addr1":"大阪市淀川区新北野1-1-20","addr2":"","company":"高松テクノサービス株式会社","companyKana":"たかまつてくのさーびす","dept":"大阪本店　営繕部","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s041","zip":"582-0012","addr1":"大阪府柏原市雁多尾畑1344","addr2":"","company":"高見興業株式会社","companyKana":"たかみこうぎょう","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s042","zip":"572-0855","addr1":"大阪府寝屋川市寝屋南2-1-8","addr2":"","company":"有限会社　第一ロックサービス","companyKana":"だいいちろっくさーびす","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s043","zip":"599-8241","addr1":"大阪府堺市中区福田665-5","addr2":"","company":"有限会社　中央ロック","companyKana":"ちゅうおうろっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s044","zip":"653","addr1":"神戸市長田区長楽町4-3-14","addr2":"","company":"株式会社T・H・C","companyKana":"てぃーえいちしー","dept":"","name":"代表取締役　橋詰　義郎","nameKana":"はしづめ よしろう","honor":"様","memo":""},
+{"id":"s045","zip":"541-0043","addr1":"大阪市中央区高麗橋4-7-7","addr2":"","company":"東西建築サービス株式会社","companyKana":"とうざいけんちくさーびす","dept":"","name":"大谷","nameKana":"おおたに","honor":"様","memo":""},
+{"id":"s046","zip":"561-0853","addr1":"大阪府豊中市服部南町4-1-4","addr2":"","company":"株式会社豊中ロック","companyKana":"とよなかろっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s047","zip":"661-0042","addr1":"兵庫県尼崎市常吉2-15-8-311","addr2":"","company":"トータル・Ｋ","companyKana":"とーたるけー","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s048","zip":"540-0034","addr1":"大阪市中央区島町2-4-9","addr2":"島町第二野村ビル2F","company":"ドルマカバジャパン株式会社","companyKana":"どるまかばじゃぱん","dept":"大阪営業所","name":"河野","nameKana":"こうの","honor":"様","memo":""},
+{"id":"s049","zip":"561-0881","addr1":"大阪府豊中市中桜塚2-9-25","addr2":"ヴェルグランデ105号","company":"","companyKana":"なかむらゆうへい","dept":"","name":"中村　裕平","nameKana":"なかむら ゆうへい","honor":"様","memo":""},
+{"id":"s050","zip":"532-0004","addr1":"大阪市淀川区西宮原2-3-35-413","addr2":"","company":"ナカヤロックサービス","companyKana":"なかやろっくさーびす","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s051","zip":"590-0004","addr1":"大阪府堺市北清水町2-2-6","addr2":"","company":"株式会社　日東","companyKana":"にっとう","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s052","zip":"564-0062","addr1":"大阪府吹田市垂水町3-8-1","addr2":"","company":"株式会社日本ハンドル","companyKana":"にほんはんどる","dept":"","name":"平田","nameKana":"ひらた","honor":"様","memo":""},
+{"id":"s053","zip":"532-0011","addr1":"大阪市淀川区西中島5-9-5","addr2":"","company":"株式会社　日本ライフクリエーター","companyKana":"にほんらいふくりえーたー","dept":"","name":"岡田","nameKana":"おかだ","honor":"様","memo":""},
+{"id":"s054","zip":"542-0081","addr1":"大阪市中央区南船場1-13-27","addr2":"アイカビル7F","company":"株式会社日本ロックサービス","companyKana":"にほんろっくさーびす","dept":"大阪支店","name":"前羽","nameKana":"まえば","honor":"様","memo":""},
+{"id":"s055","zip":"170-0013","addr1":"東京都豊島区東池袋3-23-14","addr2":"ダイハツ・ニッセイ池袋ビル","company":"株式会社日本ロックサービステクニカルセンター","companyKana":"にほんろっくさーびす","dept":"技術本部","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s056","zip":"546-0022","addr1":"大阪市東住吉区住道矢田6-14-2","addr2":"","company":"有限会社ニューイングス","companyKana":"にゅーいんぐす","dept":"","name":"根岸","nameKana":"ねぎし","honor":"様","memo":""},
+{"id":"s057","zip":"543-0024","addr1":"大阪府大阪市天王寺区舟橋町9-22-302","addr2":"","company":"Hayama株式会社","companyKana":"はやま","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s058","zip":"660-0806","addr1":"兵庫県尼崎市金楽寺町1-2-1","addr2":"","company":"株式会社　日立産機システム","companyKana":"ひたちさんきしすてむ","dept":"人事総務部","name":"菅原","nameKana":"すがわら","honor":"様","memo":""},
+{"id":"s059","zip":"653-0051","addr1":"兵庫県神戸市長田区野田町8-1-5","addr2":"","company":"兵庫ロック","companyKana":"ひょうごろっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s060","zip":"564-0044","addr1":"大阪府吹田市南金田2-29-11","addr2":"1F","company":"Fair株式会社","companyKana":"ふぇあ","dept":"","name":"前田","nameKana":"まえだ","honor":"様","memo":""},
+{"id":"s061","zip":"567-0894","addr1":"大阪府茨木市若園町7-18","addr2":"","company":"フクトクエージェンシー株式会社","companyKana":"ふくとくえーじぇんしー","dept":"","name":"社長　三浦　正雄","nameKana":"みうら まさお","honor":"様","memo":""},
+{"id":"s062","zip":"541-0042","addr1":"大阪市中央区今橋2-3-21","addr2":"","company":"藤浪倉庫株式会社","companyKana":"ふじなみそうこ","dept":"ビル管理部","name":"部長　西川","nameKana":"にしかわ","honor":"様","memo":""},
+{"id":"s063","zip":"664-0006","addr1":"兵庫県伊丹市口酒井1-3-67-1","addr2":"","company":"フジロック","companyKana":"ふじろっく","dept":"","name":"藤永","nameKana":"ふじなが","honor":"様","memo":""},
+{"id":"s064","zip":"562-0043","addr1":"大阪府箕面市桜井1-18-37","addr2":"","company":"株式会社フルカワ建設","companyKana":"ふるかわけんせつ","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s065","zip":"590-0079","addr1":"大阪府堺市堺区新町5-10","addr2":"2Ｆ","company":"株式会社　ブレイントラスト","companyKana":"ぶれいんとらすと","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s066","zip":"530-0051","addr1":"大阪市北区太融寺町5-15","addr2":"梅田イーストビル9F","company":"株式会社ブロードエンタープライズ","companyKana":"ぶろーどえんたーぷらいず","dept":"大阪本社　施工業務部","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s067","zip":"530-0055","addr1":"大阪市北区野崎町7-8","addr2":"梅田パークビル3Ｆ","company":"株式会社ブロードエンタープライズ","companyKana":"ぶろーどえんたーぷらいず","dept":"","name":"支店長　林","nameKana":"はやし","honor":"様","memo":""},
+{"id":"s068","zip":"564-0043","addr1":"大阪府吹田市南吹田2-4-17","addr2":"","company":"有限会社　平成システム","companyKana":"へいせいしすてむ","dept":"","name":"松井","nameKana":"まつい","honor":"様","memo":""},
+{"id":"s069","zip":"566-0011","addr1":"大阪府摂津市千里丘東2-10-1","addr2":"","company":"ホームメイト千里丘駅前店","companyKana":"ほーむめいとせんりおかえきまえてん","dept":"","name":"主任　堂高","nameKana":"どうたか","honor":"様","memo":""},
+{"id":"s070","zip":"564-0003","addr1":"大阪府吹田市天道町19番地5号","addr2":"AT天道1F","company":"丸真産業株式会社","companyKana":"まるしんさんぎょう","dept":"","name":"川本","nameKana":"かわもと","honor":"様","memo":""},
+{"id":"s071","zip":"592-0013","addr1":"大阪府高石市取石2-37-43","addr2":"","company":"丸山建設工業株式会社","companyKana":"まるやまけんせつこうぎょう","dept":"工事部","name":"塚田","nameKana":"つかだ","honor":"様","memo":""},
+{"id":"s072","zip":"660-0892","addr1":"兵庫県尼崎市東難波町4-2-6","addr2":"","company":"有限会社　ミサキ","companyKana":"みさき","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s073","zip":"577-0815","addr1":"大阪府東大阪市金物町5-15","addr2":"","company":"株式会社ミズタニ","companyKana":"みずたに","dept":"","name":"大浜","nameKana":"おおはま","honor":"様","memo":""},
+{"id":"s074","zip":"650-0034","addr1":"兵庫県神戸市中央区京町79番地","addr2":"日本ビルヂング3F","company":"南　株式会社","companyKana":"みなみ","dept":"営業部　施設管理課","name":"課長　原","nameKana":"はら","honor":"様","memo":""},
+{"id":"s075","zip":"532-0003","addr1":"大阪府大阪市淀川区宮原4-2-10","addr2":"PMO EX新大阪10階","company":"ミネベアショウワ株式会社","companyKana":"みねべあしょうわ","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s076","zip":"565-0024","addr1":"大阪府箕面市粟生新家2-1-9","addr2":"","company":"株式会社宮崎ロックセンター","companyKana":"みやざきろっくせんたー","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s077","zip":"550-0013","addr1":"大阪市西区新町2-2-2","addr2":"","company":"株式会社　モンベル","companyKana":"もんべる","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s078","zip":"661-0951","addr1":"兵庫県尼崎市田能6-9-25","addr2":"","company":"有限会社ヤギ商会","companyKana":"やぎしょうかい","dept":"","name":"八木","nameKana":"やぎ","honor":"様","memo":""},
+{"id":"s079","zip":"630-8136","addr1":"奈良県奈良市恋の窪3-8-2-2","addr2":"","company":"株式会社　山田ロック","companyKana":"やまだろっく","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s080","zip":"562-0001","addr1":"箕面市箕面8丁目14-21","addr2":"","company":"吉光住研株式会社","companyKana":"よしみつじゅうけん","dept":"","name":"𠮷満","nameKana":"よしみつ","honor":"様","memo":""},
+{"id":"s081","zip":"581-0056","addr1":"大阪府八尾市南太子堂6-2-24","addr2":"","company":"株式会社リーフ","companyKana":"りーふ","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s082","zip":"562-0004","addr1":"大阪府箕面市牧落3-14-30","addr2":"02号","company":"REIWA建設株式会社","companyKana":"れいわけんせつ","dept":"","name":"代表取締役　長谷川","nameKana":"はせがわ","honor":"様","memo":""},
+{"id":"s083","zip":"569-1042","addr1":"大阪府高槻市南平台2-7-5","addr2":"","company":"株式会社ロクトリー","companyKana":"ろくとりー","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s084","zip":"669-1146","addr1":"兵庫県西宮市名塩さくら台2-1-1","addr2":"","company":"株式会社　ロック. I","companyKana":"ろっくあい","dept":"","name":"石川","nameKana":"いしかわ","honor":"様","memo":""},
+{"id":"s085","zip":"640-8151","addr1":"和歌山市屋形町5-1","addr2":"","company":"ロックサービスやまばた","companyKana":"ろっくさーびすやまばた","dept":"","name":"山端","nameKana":"やまばた","honor":"様","memo":""},
+{"id":"s086","zip":"558-0004","addr1":"大阪市住吉区長居東3-14-22","addr2":"","company":"株式会社ロックビジョン","companyKana":"ろっくびじょん","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s087","zip":"567-0041","addr1":"大阪府茨木市下穂積1-4-7","addr2":"","company":"ローレルコート茨木レジデンス管理組合","companyKana":"ろーれるこーといばらきれじでんすかんりくみあい","dept":"","name":"","nameKana":"","honor":"御中","memo":""},
+{"id":"s088","zip":"565-0824","addr1":"大阪府吹田市山田西3-21","addr2":"A-411","company":"Y’ｓワークス","companyKana":"わいずわーくす","dept":"","name":"西村","nameKana":"にしむら","honor":"様","memo":""},
+{"id":"s089","zip":"543-0018","addr1":"大阪市天王寺区空清町11-8","addr2":"","company":"ワイドロック＆セキュリティ","companyKana":"わいどろっくあんどせきゅりてぃ","dept":"","name":"広川","nameKana":"ひろかわ","honor":"様","memo":""},
+{"id":"s090","zip":"558-0033","addr1":"大阪市住吉区清水丘3-1-18","addr2":"","company":"株式会社　WORLD M","companyKana":"わーるどえむ","dept":"","name":"代表　金谷","nameKana":"かなや","honor":"様","memo":""}
+];
+const DEF_SET = {from:"S M L\n〒564-0062\n大阪府吹田市垂水町1-54-14-2\nTEL 06(7508)4968", dx:0, dy:0, flip:false};
+
+// ===== 保存・OneDrive同期（ホテル計算アプリと同じ仕組み） =====
+const KEY="futo_v2", SKEY="futo_set_v1";
+const CLIENT_ID="7806d507-6cf4-49ad-b426-30b64e18879c", SC=["Files.ReadWrite.AppFolder"];
+const URL_F="https://graph.microsoft.com/v1.0/me/drive/special/approot:/futo.json:/content";
+let data=[], set={...DEF_SET}, pca=null, online=false, busy=false, timer=null;
+function live(){return data.filter(r=>!r.x)}
+function touch(r){r.t=Date.now()}
+function seed(){const now=Date.now();data=SEED.map(r=>({...r,t:now}))}
+function loadLocal(){
+  try{data=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){data=[]}
+  try{set={...DEF_SET,...JSON.parse(localStorage.getItem(SKEY)||"{}")}}catch(e){}
+}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+function save(){saveLocal();push()}
+function status(m){$("st").textContent=m}
+function merge(a,b){const m={};a.concat(b).forEach(i=>{const c=m[i.id];if(!c||(i.t||0)>(c.t||0))m[i.id]=i});return Object.values(m)}
+function token(){const acc=pca.getActiveAccount();return pca.acquireTokenSilent({scopes:SC,account:acc}).then(r=>r.accessToken).catch(()=>{pca.acquireTokenRedirect({scopes:SC});return new Promise(()=>{})})}
+function gr(m,b){return token().then(t=>{const h={Authorization:"Bearer "+t};if(b)h["Content-Type"]="application/json";return fetch(URL_F,{method:m,headers:h,body:b})})}
+function remote(){return gr("GET").then(r=>{if(r.status===404)return null;if(!r.ok)throw new Error("load "+r.status);return r.json()})}
+function push(){if(!online)return;clearTimeout(timer);status("同期待ち…");timer=setTimeout(doSync,600)}
+function doSync(){if(busy){timer=setTimeout(doSync,500);return}busy=true;status("同期中…");
+  remote().then(r=>{data=merge(data,(r&&r.items)||[]);saveLocal();return gr("PUT",JSON.stringify({v:1,items:data}))})
+  .then(r=>{if(!r.ok)throw new Error("save "+r.status);busy=false;status("OneDriveと同期済み");renderList()})
+  .catch(()=>{busy=false;status("同期失敗：再試行中");setTimeout(push,5000)})}
+function pull(){if(!online||busy||document.hidden)return;busy=true;
+  remote().then(r=>{busy=false;if(r){const b=JSON.stringify(data);data=merge(data,r.items||[]);if(JSON.stringify(data)!==b){saveLocal();renderList()}}status("OneDriveと同期済み")})
+  .catch(()=>{busy=false;status("オフライン（この端末に保存中）")})}
+function startSync(){
+  $("login").style.display="none";online=true;status("読み込み中…");
+  remote().then(r=>{data=merge(data,(r&&r.items)||[]);
+    if(!data.length)seed();
+    saveLocal();renderList();
+    if(!r||JSON.stringify(r.items||[])!==JSON.stringify(data))push();else status("OneDriveと同期済み");
+    setInterval(pull,15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull()});
+  }).catch(e=>status("読み込み失敗："+e.message))
+}
+function startLocal(){$("login").style.display="none";if(!data.length){seed();saveLocal()}status("この端末だけに保存中（⚙からログインできます）");renderList()}
+function saveSet(){try{localStorage.setItem(SKEY,JSON.stringify(set))}catch(e){}}
+
+// ===== 五十音 =====
+const ROWS=[["あ","あいうえおぁぃぅぇぉゔ"],["か","かきくけこがぎぐげご"],["さ","さしすせそざじずぜぞ"],["た","たちつてとだぢづでどっ"],["な","なにぬねの"],["は","はひふへほばびぶべぼぱぴぷぺぽ"],["ま","まみむめも"],["や","やゆよゃゅょ"],["ら","らりるれろ"],["わ","わをんゎ"]];
+function hira(s){return (s||"").replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).trim()}
+function sortKey(r){return hira(sortBy==="nm"?(r.nameKana||r.name||r.companyKana||r.company):(r.companyKana||r.company))}
+function rowOf(r){const c=sortKey(r).charAt(0);for(const[h,cs]of ROWS)if(cs.includes(c))return h;return "他"}
+const coll=new Intl.Collator("ja");
+
+// ===== 封筒の描画（横向き 235×120mm の座標で描く） =====
+const FONT='"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic",sans-serif';
+const PT=0.3528; // 1pt=mm
+function fitText(ctx,txt,x,y,pt,maxW){
+  let size=pt*PT; ctx.font=size+"px "+FONT;
+  const w=ctx.measureText(txt).width; if(w>maxW){size*=maxW/w; ctx.font=size+"px "+FONT;}
+  ctx.fillText(txt,x,y);
+}
+function recipLines(r){
+  const org=[r.company,...(r.dept||"").split("\n")].map(s=>(s||"").trim()).filter(Boolean);
+  let name=(r.name||"").trim(), honor=r.honor||"";
+  if(!name && org.length && honor){ // 担当者なし → 御中
+    const h=(honor==="様")?"御中":honor; org[org.length-1]+="　"+h; honor="";
+  }
+  return {org,name:name?name+honor:""};
+}
+function drawEnvelope(ctx,r){ // ctx は mm 単位・横向き
+  ctx.fillStyle="#fff";ctx.fillRect(-20,-20,275,160);
+  ctx.save(); ctx.translate(+set.dx||0,+set.dy||0);
+  ctx.fillStyle="#000"; ctx.textBaseline="middle";
+  const X=46.8, MAXW=235-X-14;
+  let y=35.6;
+  const zip=(r.zip||"").trim();
+  if(zip) fitText(ctx,(zip.startsWith("〒")?"":"〒")+zip,43.5,y,14,80);
+  y=45.1;
+  const addr=[r.addr1,r.addr2].map(s=>(s||"").trim()).filter(Boolean);
+  addr.forEach(a=>{fitText(ctx,a,X,y,14,MAXW);y+=6.0});
+  const L=recipLines(r);
+  y+= (addr.length?2.2:0);
+  L.org.forEach(o=>{fitText(ctx,o,X,y,14,MAXW);y+=5.9});
+  if(L.name){y+=4.0; fitText(ctx,L.name,57.1,y,18,235-57.1-14);}
+  // 差出人
+  const fl=(set.from||"").split("\n");
+  let sy=81.0;
+  fl.forEach((t,i)=>{ if(i===0){fitText(ctx,t,144.5,sy,14,80);sy+=6.0}else{fitText(ctx,t,144.5,sy,10.5,82);sy+=6.1} });
+  ctx.restore();
+}
+function drawPreview(cv,r){ // 画面用：横向き
+  const w=cv.clientWidth||600, dpr=window.devicePixelRatio||1, s=w/235*dpr;
+  cv.width=Math.round(235*s); cv.height=Math.round(120*s); cv.style.height=(w*120/235)+"px";
+  const ctx=cv.getContext("2d"); ctx.setTransform(s,0,0,s,0,0); drawEnvelope(ctx,r);
+}
+function renderPage(r){ // 印刷用：縦 120×235mm に回転して描く
+  const s=12, cv=document.createElement("canvas"); cv.width=120*s; cv.height=235*s;
+  const ctx=cv.getContext("2d");
+  if(!set.flip){ctx.setTransform(0,s,-s,0,120*s,0);} // 時計回り90°
+  else{ctx.setTransform(0,-s,s,0,0,235*s);}         // 反時計回り90°
+  drawEnvelope(ctx,r);
+  return cv;
+}
+
+// ===== PDF =====
+let pdfBlob=null,pdfName="";
+async function makePdf(recs){
+  if(!window.jspdf){toast("PDFの部品が読み込めません（通信を確認）");return}
+  try{await document.fonts.ready}catch(e){}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:"mm",format:[120,235],orientation:"portrait",compress:true});
+  recs.forEach((r,i)=>{ if(i)doc.addPage([120,235],"portrait");
+    doc.addImage(renderPage(r).toDataURL("image/jpeg",0.92),"JPEG",0,0,120,235); });
+  pdfBlob=doc.output("blob");
+  pdfName=recs.length===1?("封筒_"+(recs[0].company||recs[0].name||"宛先").replace(/[\\/:*?"<>|\s]/g,"")+".pdf"):("封筒_"+recs.length+"件.pdf");
+  $("pNote").textContent=pdfName+(recs.length>1?"（"+recs.length+"ページ）":"");
+  show("shPdf");
+}
+$("pShare").onclick=async()=>{
+  const f=new File([pdfBlob],pdfName,{type:"application/pdf"});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){}}
+  else $("pOpen").onclick();
+};
+$("pOpen").onclick=()=>{const u=URL.createObjectURL(pdfBlob);const a=document.createElement("a");a.href=u;a.target="_blank";a.download=pdfName;a.click();};
+$("pClose").onclick=()=>hide("shPdf");
+
+// ===== 一覧 =====
+function $(id){return document.getElementById(id)}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+let sortBy="co", selMode=false, sel=new Set(), cur=null;
+function filtered(){
+  const q=hira($("q").value).replace(/\s|　/g,"").toLowerCase();
+  let a=live().filter(r=>!q||hira([r.company,r.companyKana,r.dept,r.name,r.nameKana,r.addr1,r.addr2,r.zip,r.memo].join("")).replace(/\s|　/g,"").toLowerCase().includes(q));
+  return a.sort((x,y)=>coll.compare(sortKey(x),sortKey(y)));
+}
+function renderList(){
+  const a=filtered(), g={};
+  a.forEach(r=>{(g[rowOf(r)]=g[rowOf(r)]||[]).push(r)});
+  const order=[...ROWS.map(r=>r[0]),"他"];
+  $("idx").innerHTML=order.map(h=>`<button class="${g[h]?"":"off"}" data-j="${h}">${h}</button>`).join("");
+  let h="";
+  order.forEach(k=>{ if(!g[k])return;
+    h+=`<div class="gh" id="g_${k}">${k}行</div>`;
+    g[k].forEach(r=>{const L=recipLines(r);
+      h+=`<div class="item" data-id="${r.id}">${selMode?`<input type="checkbox" ${sel.has(r.id)?"checked":""}>`:""}<div class="t"><div class="c">${esc(r.company||r.name)}</div><div class="n">${esc([(r.dept||"").replace(/\n/g," "),L.name].filter(Boolean).join("　"))}</div><div class="a">〒${esc(r.zip)} ${esc(r.addr1)}</div></div></div>`;});
+  });
+  $("list").innerHTML=h||`<div class="empty">${live().length?"見つかりません":"宛先がありません"}</div>`;
+  updateBar();
+}
+$("idx").onclick=e=>{const j=e.target.dataset.j;if(!j)return;const el=$("g_"+j);if(el){const y=el.getBoundingClientRect().top+scrollY-document.querySelector("header").offsetHeight-6;scrollTo({top:y,behavior:"smooth"})}};
+$("list").onclick=e=>{const it=e.target.closest(".item");if(!it)return;const id=it.dataset.id;
+  if(selMode){sel.has(id)?sel.delete(id):sel.add(id);renderList();return}
+  openView(id)};
+$("q").oninput=renderList;
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{sortBy=b.dataset.s;document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b));renderList()});
+$("bSel").onclick=()=>{selMode=!selMode;sel.clear();$("bSel").textContent=selMode?"やめる":"選択";renderList()};
+function updateBar(){
+  $("bar").innerHTML=selMode?`<button class="pri" id="bMulti" ${sel.size?"":"disabled"}>選んだ ${sel.size} 件をPDFに</button>`:`<button class="pri" id="bAdd">＋ 新しい宛先</button>`;
+  if(selMode)$("bMulti").onclick=()=>{const a=filtered().filter(r=>sel.has(r.id));makePdf(a)};
+  else $("bAdd").onclick=()=>openEdit(null);
+}
+
+// ===== 詳細 =====
+function show(id){$(id).classList.add("show")} function hide(id){$(id).classList.remove("show")}
+function openView(id){cur=data.find(r=>r.id===id);if(!cur)return;$("vTitle").textContent=cur.company||cur.name;show("shView");requestAnimationFrame(()=>drawPreview($("vCan"),cur))}
+$("vClose").onclick=()=>hide("shView");
+$("vPrint").onclick=()=>makePdf([cur]);
+$("vEdit").onclick=()=>{hide("shView");openEdit(cur)};
+$("vDup").onclick=()=>{hide("shView");openEdit({...cur,id:null,name:"",nameKana:""})};
+$("vDel").onclick=()=>{if(!confirm("「"+(cur.company||cur.name)+"」を削除しますか？"))return;cur.x=1;touch(cur);save();hide("shView");renderList();toast("削除しました")};
+
+// ===== 編集 =====
+const FIELDS=["zip","addr1","addr2","company","companyKana","dept","name","nameKana","honor","memo"];
+let editId=null;
+function formRec(){const r={};FIELDS.forEach(f=>r[f]=$("e_"+f).value);return r}
+function openEdit(r){
+  editId=r&&r.id||null; $("eTitle").textContent=editId?"宛先を編集":"新しい宛先";
+  FIELDS.forEach(f=>$("e_"+f).value=r?(r[f]??""):(f==="honor"?"様":""));
+  show("shEdit"); requestAnimationFrame(()=>drawPreview($("eCan"),formRec()));
+}
+FIELDS.forEach(f=>$("e_"+f).addEventListener("input",()=>drawPreview($("eCan"),formRec())));
+$("e_zip").addEventListener("blur",()=>{const d=$("e_zip").value.replace(/[^0-9０-９]/g,"").replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));if(d.length===7){$("e_zip").value=d.slice(0,3)+"-"+d.slice(3);drawPreview($("eCan"),formRec())}});
+$("eZip").onclick=async()=>{
+  const d=$("e_zip").value.replace(/[^0-9]/g,"");if(d.length!==7){toast("郵便番号を7桁で入れてください");return}
+  try{const j=await (await fetch("https://zipcloud.ibsnet.co.jp/api/search?zipcode="+d)).json();
+    if(j.results&&j.results[0]){const x=j.results[0];$("e_addr1").value=x.address1+x.address2+x.address3;$("e_zip").value=d.slice(0,3)+"-"+d.slice(3);drawPreview($("eCan"),formRec());$("e_addr1").focus()}
+    else toast("見つかりませんでした")}catch(e){toast("検索できませんでした")}
+};
+$("eCancel").onclick=()=>hide("shEdit");
+$("eSave").onclick=()=>{
+  const r=formRec(); if(!r.company.trim()&&!r.name.trim()){toast("会社名か氏名を入れてください");return}
+  if(editId){const o=data.find(x=>x.id===editId);Object.assign(o,r);touch(o)}else{r.id="u"+Date.now().toString(36)+Math.floor(Math.random()*1e4);touch(r);data.push(r);editId=r.id}
+  save();hide("shEdit");renderList();toast("保存しました");openView(editId);
+};
+
+// ===== 設定 =====
+$("bSet").onclick=()=>{$("s_from").value=set.from;$("s_dx").value=set.dx;$("s_dy").value=set.dy;$("s_flip").checked=!!set.flip;$("sCount").textContent=live().length;$("sLogin").textContent=online?"ログアウト":"Microsoftでログイン";show("shSet")};
+$("sClose").onclick=()=>hide("shSet");
+$("sSave").onclick=()=>{set={from:$("s_from").value,dx:parseFloat($("s_dx").value)||0,dy:parseFloat($("s_dy").value)||0,flip:$("s_flip").checked};saveSet();hide("shSet");toast("保存しました")};
+$("sExport").onclick=async()=>{
+  const b=new Blob([JSON.stringify({app:"futo",ver:1,settings:set,items:live()},null,1)],{type:"application/json"});
+  const name="封筒宛先_"+new Date().toISOString().slice(0,10)+".json", f=new File([b],name,{type:"application/json"});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){}}
+  else{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click()}
+};
+$("sImport").onclick=()=>$("sFile").click();
+$("sFile").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());const items=j.items||j;
+    if(!Array.isArray(items))throw 0;
+    const mode=confirm("OK＝今の宛先を置き換える\nキャンセル＝今の宛先に追加する");
+    const now=Date.now(),ids=new Set(items.map(r=>r.id));if(mode)data.forEach(r=>{if(!ids.has(r.id)&&!r.x){r.x=1;r.t=now}});const have=new Set(data.filter(r=>!r.x).map(r=>r.id));items.forEach(r=>{if(mode||!have.has(r.id)){const o={...r,t:now};delete o.x;data=data.filter(d=>d.id!==r.id);data.push(o)}})
+    if(j.settings&&confirm("差出人などの設定も読み込みますか？")){set={...DEF_SET,...j.settings};saveSet()}
+    save();renderList();hide("shSet");toast(live().length+"件になりました");
+  }catch(err){toast("読み込めませんでした")}
+  e.target.value="";
+};
+
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2000)}
+document.querySelectorAll(".sheet").forEach(s=>s.addEventListener("click",e=>{if(e.target===s)s.classList.remove("show")}));
+
+$("sLogin").onclick=()=>{if(online){pca.logoutRedirect()}else{hide("shSet");$("login").style.display="flex"}};
+$("lg").onclick=()=>pca?pca.loginRedirect({scopes:SC}):($("lerr").textContent="ログインの部品が読み込めませんでした（通信を確認）");
+$("lgSkip").onclick=startLocal;
+loadLocal(); renderList();
+try{pca=new msal.PublicClientApplication({auth:{clientId:CLIENT_ID,authority:"https://login.microsoftonline.com/consumers",redirectUri:location.origin+location.pathname},cache:{cacheLocation:"localStorage"}});
+  pca.initialize().then(()=>pca.handleRedirectPromise()).then(r=>{const a=(r&&r.account)||pca.getAllAccounts()[0];if(a){pca.setActiveAccount(a);startSync()}else $("login").style.display="flex"})
+  .catch(e=>{$("login").style.display="flex";$("lerr").textContent="ログインエラー："+e.message})
+}catch(e){$("login").style.display="flex";$("lerr").textContent="読み込みエラー："+e.message}
+</script>
+</body>
+</html>
