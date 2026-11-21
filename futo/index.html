@@ -347,8 +347,8 @@ function renderPage(r){ // 印刷用：縦 120×235mm に回転して描く
 
 // ===== PDF =====
 let pdfBlob=null,pdfName="";
-async function makePdf(recs){
-  if(!window.jspdf){toast("PDFの部品が読み込めません（通信を確認）");return}
+async function buildPdf(recs){
+  if(!window.jspdf)throw new Error("PDFの部品が読み込めません（通信を確認）");
   try{await document.fonts.ready}catch(e){}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:[120,235],orientation:"portrait",compress:true});
@@ -356,11 +356,30 @@ async function makePdf(recs){
     doc.addImage(renderPage(r).toDataURL("image/jpeg",0.92),"JPEG",0,0,120,235); });
   pdfBlob=doc.output("blob");
   pdfName=recs.length===1?("封筒_"+(recs[0].company||recs[0].name||"宛先").replace(/[\\/:*?"<>|\s]/g,"")+".pdf"):("封筒_"+recs.length+"件.pdf");
+  return new File([pdfBlob],pdfName,{type:"application/pdf"});
+}
+async function makePdf(recs){
+  try{await buildPdf(recs)}catch(e){toast(e.message);return}
+  $("pTitle").textContent="PDFができました";
   $("pNote").textContent=pdfName+(recs.length>1?"（"+recs.length+"ページ）":"");
   show("shPdf");
 }
+// 印刷：共有画面の「プリント」から印刷（URLや日付が入らない）
+let ready=null; // {key,file}
+function keyOf(recs){return recs.map(r=>r.id+":"+(r.t||0)).join(",")+JSON.stringify(set)}
+function prepare(recs){const k=keyOf(recs);if(ready&&ready.key===k)return;ready={key:k,file:null};
+  buildPdf(recs).then(f=>{if(ready&&ready.key===k)ready.file=f}).catch(()=>{})}
+async function printRecs(recs){
+  const k=keyOf(recs);let f=ready&&ready.key===k?ready.file:null;
+  if(!f){try{f=await buildPdf(recs)}catch(e){toast(e.message);return}ready={key:k,file:f}}
+  if(navigator.canShare&&navigator.canShare({files:[f]})){
+    try{await navigator.share({files:[f]});return}
+    catch(e){if(e&&e.name==="AbortError")return}
+    pdfBlob=f;pdfName=f.name;$("pTitle").textContent="準備ができました";$("pNote").textContent="「共有・印刷」を押して、出てきた画面で「プリント」を選んでください。";show("shPdf");
+  }else{const u=URL.createObjectURL(f);window.open(u,"_blank")}
+}
 $("pShare").onclick=async()=>{
-  const f=new File([pdfBlob],pdfName,{type:"application/pdf"});
+  const f=pdfBlob instanceof File?pdfBlob:new File([pdfBlob],pdfName,{type:"application/pdf"});
   if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){}}
   else $("pOpen").onclick();
 };
@@ -399,22 +418,17 @@ document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{sortBy=b.data
 $("bSel").onclick=()=>{selMode=!selMode;sel.clear();$("bSel").textContent=selMode?"やめる":"選択";renderList()};
 function updateBar(){
   $("bar").innerHTML=selMode?`<button class="pri" id="bMulti" ${sel.size?"":"disabled"}>選んだ ${sel.size} 件を印刷</button>`:`<button class="pri" id="bAdd">＋ 新しい宛先</button>`;
-  if(selMode)$("bMulti").onclick=()=>{const a=filtered().filter(r=>sel.has(r.id));printRecs(a)};
+  if(selMode){const a=()=>filtered().filter(r=>sel.has(r.id));if(sel.size)prepare(a());$("bMulti").onclick=()=>printRecs(a())}
   else $("bAdd").onclick=()=>openEdit(null);
 }
 
 // ===== 詳細 =====
 function show(id){$(id).classList.add("show")} function hide(id){$(id).classList.remove("show")}
-function openView(id){cur=data.find(r=>r.id===id);if(!cur)return;$("vTitle").textContent=cur.company||cur.name;show("shView");requestAnimationFrame(()=>drawPreview($("vCan"),cur))}
+function openView(id){cur=data.find(r=>r.id===id);if(!cur)return;$("vTitle").textContent=cur.company||cur.name;show("shView");requestAnimationFrame(()=>drawPreview($("vCan"),cur));setTimeout(()=>prepare([cur]),300)}
 $("vClose").onclick=()=>hide("shView");
 $("vPrint").onclick=()=>printRecs([cur]);
 $("vPdf").onclick=()=>makePdf([cur]);
-async function printRecs(recs){
-  try{await document.fonts.ready}catch(e){}
-  const pa=$("printArea");pa.innerHTML="";
-  await Promise.all(recs.map(r=>new Promise(ok=>{const im=new Image();im.onload=ok;im.onerror=ok;im.src=renderPage(r).toDataURL("image/jpeg",0.92);pa.appendChild(im)})));
-  window.print();
-}
+
 $("vEdit").onclick=()=>{hide("shView");openEdit(cur)};
 $("vDup").onclick=()=>{hide("shView");openEdit({...cur,id:null,name:"",nameKana:""})};
 $("vDel").onclick=()=>{if(!confirm("「"+(cur.company||cur.name)+"」を削除しますか？"))return;cur.x=1;touch(cur);save();hide("shView");renderList();toast("削除しました")};
