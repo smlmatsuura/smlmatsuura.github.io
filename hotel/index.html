@@ -58,7 +58,7 @@ th:first-child,td:first-child{text-align:left}
 .pw{overflow-x:auto;margin:10px 12px}
 .pt{width:100%;min-width:720px;border-collapse:collapse;table-layout:fixed;background:#fff;color:#000;font-size:11px;margin-bottom:12px}
 .pt td{border:1px solid #000;padding:2px 3px;text-align:center;vertical-align:top;overflow:hidden;word-break:break-all}
-.pt td.lb{width:50px;vertical-align:middle;background:#eef1f6;font-weight:700}
+.pt td.lb{width:58px;white-space:nowrap;font-size:10px;padding:2px 1px;vertical-align:middle;background:#eef1f6;font-weight:700}
 .pt td.dd{border-bottom:2px solid #000}
 .pt td.t{white-space:pre-wrap}
 .h1{height:34px}.h2{height:64px}
@@ -188,7 +188,7 @@ var cells=wk.map(function(x){var d=map[ymd(x)],m=d?ws.filter(function(w){return(
 var n=14;cells.forEach(function(q){if(q.names.length>n)n=q.names.length});
 function r(lb,fn,cls){return'<tr><td class="lb">'+lb+'</td>'+cells.map(function(q){return'<td class="'+(cls||"")+'">'+fn(q)+'</td>'}).join("")+'</tr>'}
 h+='<div class="pw"><table class="pt">'+
-r("作業日",function(q){var wd=q.x.getDay();return'<span style="color:'+(wd===0?"#c00":wd===6?"#1d4ed8":"#000")+'">'+(q.x.getMonth()+1)+"月"+q.x.getDate()+"日<br>"+"日月火水木金土"[wd]+'</span>'},"dd")+
+r("作業日",function(q){var wd=q.x.getDay();return'<span style="color:'+(wd===0?"#c00":wd===6?"#1d4ed8":"#000")+'">'+(q.x.getMonth()+1)+"月"+q.x.getDate()+"日 "+"日月火水木金土"[wd]+'</span>'},"dd")+
 r("売り止め",function(q){return q.d?esc(q.d.ns):""},"t h1")+
 r("作業箇所",function(q){return q.d?esc(q.d.loc):""})+
 r("台数",function(q){return q.d&&q.d.cnt?q.d.cnt+"台":""})+
