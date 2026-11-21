@@ -92,7 +92,6 @@ label{display:block;font-size:13px;color:var(--sub);margin:10px 2px 4px}
   <div class="ptitle"><b id="vTitle"></b><button id="vClose">閉じる</button></div>
   <canvas class="prev" id="vCan"></canvas>
   <div class="btns"><button class="pri" id="vPrint">印刷</button></div>
-  <div style="text-align:center;margin-top:6px"><button id="vPdf" style="border:0;background:none;color:var(--sub);font-size:13px">PDFで保存</button></div>
   <div class="btns"><button id="vEdit">編集</button><button id="vDup">複製</button><button class="dan" id="vDel">削除</button></div>
 </div></div>
 
@@ -427,7 +426,6 @@ function show(id){$(id).classList.add("show")} function hide(id){$(id).classList
 function openView(id){cur=data.find(r=>r.id===id);if(!cur)return;$("vTitle").textContent=cur.company||cur.name;show("shView");requestAnimationFrame(()=>drawPreview($("vCan"),cur));setTimeout(()=>prepare([cur]),300)}
 $("vClose").onclick=()=>hide("shView");
 $("vPrint").onclick=()=>printRecs([cur]);
-$("vPdf").onclick=()=>makePdf([cur]);
 
 $("vEdit").onclick=()=>{hide("shView");openEdit(cur)};
 $("vDup").onclick=()=>{hide("shView");openEdit({...cur,id:null,name:"",nameKana:""})};
