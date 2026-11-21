@@ -55,6 +55,15 @@ label{display:block;font-size:13px;color:var(--sub);margin:10px 2px 4px}
 #login p{color:var(--sub);line-height:1.6}
 #login h1{flex:none;font-size:24px;margin-bottom:6px}
 #st{font-size:12px;color:var(--sub);margin-top:4px}
+#printArea{display:none}
+@page{size:120mm 235mm;margin:0}
+@media print{
+  body>*:not(#printArea){display:none!important}
+  body{background:#fff;margin:0}
+  #printArea{display:block}
+  #printArea img{display:block;width:120mm;height:235mm;page-break-after:always;break-after:page}
+  #printArea img:last-child{page-break-after:auto;break-after:auto}
+}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;transition:.3s;z-index:99;pointer-events:none}
 .toast.show{opacity:.92}
 </style>
@@ -82,7 +91,8 @@ label{display:block;font-size:13px;color:var(--sub);margin:10px 2px 4px}
 <div class="sheet" id="shView"><div class="panel">
   <div class="ptitle"><b id="vTitle"></b><button id="vClose">閉じる</button></div>
   <canvas class="prev" id="vCan"></canvas>
-  <div class="btns"><button class="pri" id="vPrint">PDFを作って印刷</button></div>
+  <div class="btns"><button class="pri" id="vPrint">印刷</button></div>
+  <div style="text-align:center;margin-top:6px"><button id="vPdf" style="border:0;background:none;color:var(--sub);font-size:13px">PDFで保存</button></div>
   <div class="btns"><button id="vEdit">編集</button><button id="vDup">複製</button><button class="dan" id="vDel">削除</button></div>
 </div></div>
 
@@ -140,6 +150,7 @@ label{display:block;font-size:13px;color:var(--sub);margin:10px 2px 4px}
 <button id="lgSkip" style="margin-top:14px;border:0;background:none;color:var(--sub);font-size:14px">ログインせずに使う（この端末だけに保存）</button>
 <p id="lerr" style="color:var(--danger);font-size:13px"></p></div>
 <div class="toast" id="toast"></div>
+<div id="printArea"></div>
 
 <script>
 // ===== 初期データ（元PDFから取り込み） =====
@@ -387,8 +398,8 @@ $("q").oninput=renderList;
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{sortBy=b.dataset.s;document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b));renderList()});
 $("bSel").onclick=()=>{selMode=!selMode;sel.clear();$("bSel").textContent=selMode?"やめる":"選択";renderList()};
 function updateBar(){
-  $("bar").innerHTML=selMode?`<button class="pri" id="bMulti" ${sel.size?"":"disabled"}>選んだ ${sel.size} 件をPDFに</button>`:`<button class="pri" id="bAdd">＋ 新しい宛先</button>`;
-  if(selMode)$("bMulti").onclick=()=>{const a=filtered().filter(r=>sel.has(r.id));makePdf(a)};
+  $("bar").innerHTML=selMode?`<button class="pri" id="bMulti" ${sel.size?"":"disabled"}>選んだ ${sel.size} 件を印刷</button>`:`<button class="pri" id="bAdd">＋ 新しい宛先</button>`;
+  if(selMode)$("bMulti").onclick=()=>{const a=filtered().filter(r=>sel.has(r.id));printRecs(a)};
   else $("bAdd").onclick=()=>openEdit(null);
 }
 
@@ -396,7 +407,14 @@ function updateBar(){
 function show(id){$(id).classList.add("show")} function hide(id){$(id).classList.remove("show")}
 function openView(id){cur=data.find(r=>r.id===id);if(!cur)return;$("vTitle").textContent=cur.company||cur.name;show("shView");requestAnimationFrame(()=>drawPreview($("vCan"),cur))}
 $("vClose").onclick=()=>hide("shView");
-$("vPrint").onclick=()=>makePdf([cur]);
+$("vPrint").onclick=()=>printRecs([cur]);
+$("vPdf").onclick=()=>makePdf([cur]);
+async function printRecs(recs){
+  try{await document.fonts.ready}catch(e){}
+  const pa=$("printArea");pa.innerHTML="";
+  await Promise.all(recs.map(r=>new Promise(ok=>{const im=new Image();im.onload=ok;im.onerror=ok;im.src=renderPage(r).toDataURL("image/jpeg",0.92);pa.appendChild(im)})));
+  window.print();
+}
 $("vEdit").onclick=()=>{hide("shView");openEdit(cur)};
 $("vDup").onclick=()=>{hide("shView");openEdit({...cur,id:null,name:"",nameKana:""})};
 $("vDel").onclick=()=>{if(!confirm("「"+(cur.company||cur.name)+"」を削除しますか？"))return;cur.x=1;touch(cur);save();hide("shView");renderList();toast("削除しました")};
