@@ -107,7 +107,7 @@ textarea{resize:vertical;min-height:64px}
 .page{width:210mm;height:297mm;padding:11mm 13mm 8mm;background:#fff;color:#000;display:flex;flex-direction:column;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
 .p-title{text-align:center;font-size:20pt;letter-spacing:.6em;padding-left:.6em;margin:0 0 4mm;font-weight:500}
 .p-title span{border-bottom:1.2pt solid #000;padding:0 0 1mm}
-.p-head{display:flex;justify-content:space-between;align-items:stretch;gap:8mm;height:33mm;margin-bottom:3.5mm}
+.p-head{display:flex;justify-content:space-between;align-items:stretch;gap:8mm;min-height:31mm;margin-bottom:3mm;flex:none}
 .p-left{flex:1;display:flex;flex-direction:column;font-size:10.5pt;min-width:0}
 .p-tos{margin-bottom:auto}
 .p-to{border-bottom:.9pt solid #000;padding:0 0 .8mm 1mm;font-size:12.5pt;min-height:7.5mm;display:flex;align-items:flex-end}
@@ -122,9 +122,9 @@ textarea{resize:vertical;min-height:64px}
 .p-body{flex:1;display:grid;gap:3mm;min-height:0}
 .p-band{grid-column:1 / -1;border:.9pt solid #000;background:#e6e6e6;font-weight:700;font-size:11.5pt;padding:1.2mm 3mm;letter-spacing:.15em;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .p-band small{font-weight:400;font-size:9pt;letter-spacing:0;margin-left:2mm}
-.p-sum{grid-column:1 / -1;border:.9pt solid #000;padding:2mm 3mm;font-size:10pt;line-height:1.6;overflow:hidden;display:flex;flex-direction:column}
-.p-sum .k{font-weight:700;font-size:9.5pt;border-bottom:.6pt solid #000;margin-bottom:1.5mm;padding-bottom:.8mm}
-.p-sum .t{white-space:pre-wrap;flex:1;overflow:hidden}
+.p-sum{grid-column:1 / -1;border:.9pt solid #000;padding:1.3mm 3mm;font-size:9.5pt;line-height:1.5;overflow:hidden;display:flex;gap:3mm;max-height:22mm}
+.p-sum .k{font-weight:700;font-size:9pt;flex:none;border-right:.6pt solid #000;padding-right:3mm}
+.p-sum .t{white-space:pre-wrap;flex:1;overflow:hidden;min-width:0}
 .p-foot{display:flex;justify-content:space-between;font-size:8.5pt;color:#444;padding-top:2.5mm}
 .pic{border:.9pt solid #000;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;min-width:0}
 .pic img{width:100%;height:100%;object-fit:contain;display:block}
@@ -191,7 +191,7 @@ textarea{resize:vertical;min-height:64px}
     <label class="f">現場名</label><input type="text" id="site" placeholder="例：（仮称）ホテルGV新大阪">
     <label class="f">作業日</label><input type="date" id="date">
     <label class="f">作業場所（任意）</label><input type="text" id="place" placeholder="例：3F 客室302">
-    <label class="f">作業内容（任意・1ページ目に表示）</label><textarea id="summary" placeholder="空欄なら表示されません"></textarea>
+    <label class="f">作業内容（任意・全ページの上に表示）</label><textarea id="summary" placeholder="空欄なら表示されません"></textarea>
   </div>
 
   <div class="card">
@@ -457,8 +457,8 @@ function buildModel(){
   groups.forEach(g=>{
     let i=0,first=true;
     do{
-      const sum=hasSum&&pages.length===0;
-      const cap=sum?per-c.cols:per;
+      const sum=hasSum;
+      const cap=per;
       pages.push({label:g.label,cont:!first,sum,cap,items:g.list.slice(i,i+cap).map(p=>({p,n:m.get(p)}))});
       i+=cap;first=false;
     }while(i<g.list.length);
@@ -498,7 +498,7 @@ function pagesHTML(){
     if(pg.label)cells+=`<div class="p-band">${pg.label}${pg.cont?"<small>（つづき）</small>":""}</div>`;
     if(pg.sum)cells+=`<div class="p-sum"><div class="k">作業内容</div><div class="t">${esc(info.summary)}</div></div>`;
     for(let k=0;k<pg.cap;k++)cells+=item(pg.items[k]);
-    const rows=`${pg.label?"auto ":""}repeat(${c.rows},minmax(0,1fr))`;
+    const rows=`${pg.label?"auto ":""}${pg.sum?"auto ":""}repeat(${c.rows},minmax(0,1fr))`;
     return `<div class="page"><div>${header()}</div>
       <div class="p-body L-${info.layout}" style="grid-template-rows:${rows}">${cells}</div>
       <div class="p-foot"><span>${esc(info.site)}</span><span>${pi+1} / ${total}</span></div></div>`;
@@ -607,27 +607,30 @@ const XL=(()=>{
       { const sx=colX(13)-10-84,sy=rowY(r2)+(rowY(r7+1)-rowY(r2)-77)/2; imgs.push({media:"seal",...anchorAt(sx,sy),w:84,h:77}); }
       // 区分見出し
       if(pg.label){const rb=add(20);merge(rb,0,rb,12,S.band,"　"+pg.label+(pg.cont?"（つづき）":""));add(5)}
+      if(pg.sum){
+        const lines=Math.min(4,info.summary.split("\n").reduce((a,l)=>a+Math.max(1,Math.ceil(l.length/48)),0));
+        const rs=add(10+lines*14);merge(rs,0,rs,12,S.sum,"【作業内容】"+info.summary);add(5);
+      }
       // スロット
       const slots=[];
-      if(pg.sum)slots.push("sum");
       const cols=LAYOUT[L].cols;
       for(let k=0;k<pg.items.length;k+=cols)slots.push(pg.items.slice(k,k+cols));
       slots.forEach(sl=>{
         if(L==="list"){
-          const a=add(18),b=[add(22),add(22),add(22),add(22),add(22)];add(8);
+          const a=add(18),b=[add(20),add(20),add(20),add(20),add(20)];add(8);
           if(sl==="sum"){merge(a,0,b[4],12,S.sum,"【作業内容】\n"+info.summary);return}
           const {p,n}=sl[0];
           merge(a,0,b[4],5,S.frame);place(p.id,p.w,p.h,a,0,b[4],5,3);
           merge(a,7,a,12,S.nohd,`No.${n}　工程：${p.proc||""}`);
           merge(b[0],7,b[4],12,S.note,p.note);
         }else if(L==="grid"){
-          const a=add(160),b=add(16);add(8);
+          const a=add(150),b=add(16);add(8);
           if(sl==="sum"){merge(a,0,b,12,S.sum,"【作業内容】\n"+info.summary);return}
           sl.forEach((it,j)=>{const c1=j?7:0,c2=j?12:5;const {p,n}=it;
             merge(a,c1,a,c2,S.frame);place(p.id,p.w,p.h,a,c1,a,c2,3);
             merge(b,c1,b,c2,S.cap,`${n}. ${p.proc||""}　${(p.note||"").replace(/\n/g," ")}`)});
         }else{
-          const a=add(20),b=add(236),c=add(18);add(6);
+          const a=add(20),b=add(220),c=add(18);add(6);
           if(sl==="sum"){merge(a,0,c,12,S.sum,"【作業内容】\n"+info.summary);return}
           const {p,n}=sl[0];
           merge(a,0,a,1,S.bar,`No.${n}`);merge(a,2,a,12,S.bar,`工程：${p.proc||""}`);
