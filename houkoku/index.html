@@ -83,7 +83,15 @@ textarea{resize:vertical;min-height:64px}
 .rp .m{flex:1;min-width:0}
 .rp .m b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rp .m span{font-size:12px;color:var(--sub)}
-.rp .m .now{color:var(--accent);font-weight:700;margin-left:4px}
+.st{display:inline-block;font-size:11px;font-weight:700;color:#fff;border-radius:5px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.st.ok{background:#2e8b57}.st.wip{background:#d9822b}
+.rp .m .st{color:#fff;font-size:11px;margin-left:0;margin-top:3px}
+.donecard{display:flex;align-items:center;gap:10px}
+.donecard .lb{flex:1;font-size:15px;font-weight:700}
+.donecard .lb small{display:block;font-size:12px;color:var(--sub);font-weight:400;margin-top:2px}
+.donebtn{padding:11px 14px;border-radius:10px;border:none;font-size:15px;font-weight:700;font-family:inherit;color:#fff;background:#2e8b57}
+.donebtn.back{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.prevbar{max-width:820px;margin:0 auto 12px;padding:0 12px}
 .rp .bs{display:flex;flex-direction:column;gap:4px}
 .rp .bs button{font-size:12px;padding:5px 8px;border:1px solid var(--line);background:#fff;border-radius:7px;font-family:inherit;white-space:nowrap}
 .rp .bs .del{color:var(--accent)}
@@ -208,6 +216,7 @@ textarea{resize:vertical;min-height:64px}
   <div id="secs"></div>
   <div class="count" id="count"></div>
   <input type="file" id="file" accept="image/*" multiple hidden>
+  <div class="card donecard" id="doneCard"></div>
   <p class="hint" style="text-align:center">入力内容は自動で保存されます（「保存一覧」から開けます）</p><div style="text-align:center"><button class="danger" id="newBtn">＋ 新しい報告書を作る</button></div>
 </main>
 
@@ -273,7 +282,7 @@ async function doSave(){
   if(!photos[0]){cur.thumb="";cur.thumbOf=null}
   const now=Date.now();
   await idb("reports","readwrite",s=>s.put({id:cur.id,created:cur.created,info:{...info},photos,updated:now},cur.id));
-  const m={id:cur.id,to:info.to,person:info.person,site:info.site,date:info.date,title:info.title,count:photos.length,updated:now,thumb:cur.thumb||""};
+  const m={id:cur.id,to:info.to,person:info.person,site:info.site,date:info.date,title:info.title,done:!!info.done,count:photos.length,updated:now,thumb:cur.thumb||""};
   await idb("meta","readwrite",s=>s.put(m,cur.id));
   const i=metaCache.findIndex(x=>x.id===m.id);if(i>=0)metaCache[i]=m;else{metaCache.push(m);refreshLists()}
   odSoon(3000);
@@ -288,14 +297,14 @@ function updPersonList(){$("personList").innerHTML=[...new Set(metaCache.filter(
 async function openReport(id){
   await doSave();
   const r=await idb("reports","readonly",s=>s.get(id));if(!r)return toast("開けませんでした");
-  cur={id:r.id,created:r.created};info={...info,...r.info};photos=r.photos||[];
+  cur={id:r.id,created:r.created};info={...info,done:false,...r.info};photos=r.photos||[];
   try{localStorage.setItem("sr_cur",cur.id)}catch(e){}
   fillForm();renderList();show("edit");toast("開きました："+(info.site||"現場名なし"));
 }
 async function newReport(from){
   await doSave();
   cur={id:null,created:0};photos=[];
-  info={...info,to:from?from.to:"",person:from?from.person:"",site:from?from.site:"",place:"",summary:"",date:today()};
+  info={...info,to:from?from.to:"",person:from?from.person:"",site:from?from.site:"",place:"",summary:"",date:today(),done:false};
   try{localStorage.removeItem("sr_cur")}catch(e){}
   fillForm();renderList();show("edit");toast(from?"同じ現場で新しく作ります":"新しい報告書");
 }
@@ -308,7 +317,7 @@ async function renderSaved(){
   const keys=[...g.keys()].sort((a,b)=>a.localeCompare(b,"ja"));
   $("slist").innerHTML=keys.length?keys.map(k=>`<details class="grp" ${keys.length<=3||q?"open":""}><summary>${esc(k)}<span class="c">${g.get(k).length}件</span><span class="ar">›</span></summary>
     ${g.get(k).map(m=>`<div class="rp" data-id="${m.id}">${m.thumb?`<img src="${m.thumb}">`:`<div class="ni"></div>`}
-      <div class="m" data-op="open"><b>${esc(m.site||"（現場名なし）")}</b><span>${fmt(m.date)}・${esc(m.person?m.person+" 様":"御中")}・${m.count}枚</span>${m.id===cur.id?'<span class="now">編集中</span>':""}</div>
+      <div class="m" data-op="open"><b>${esc(m.site||"（現場名なし）")}</b><span>${fmt(m.date)}・${esc(m.person?m.person+" 様":"御中")}・${m.count}枚</span>${m.done?'<span class="st ok">完成</span>':'<span class="st wip">作成中</span>'}</div>
       <div class="bs"><button data-op="open">開く</button><button data-op="same">同じ現場で新規</button><button data-op="del" class="del">削除</button></div></div>`).join("")}</details>`).join("")
     :`<div class="empty" style="padding:30px 0">${q?"見つかりません":"まだ保存された報告書はありません"}</div>`;
 }
@@ -319,7 +328,7 @@ $("slist").addEventListener("click",async e=>{
   if(t.dataset.op==="del"){
     if(!await ask(`「${esc(m.site||"現場名なし")}」（${fmt(m.date)}）を削除しますか？<br>元に戻せません。`))return;
     await idb("reports","readwrite",s=>s.delete(id));await idb("meta","readwrite",s=>s.delete(id));addDel(id);odSoon(500);
-    if(id===cur.id){cur={id:null,created:0};photos=[];info={...info,to:"",person:"",site:"",place:"",summary:"",date:today()};try{localStorage.removeItem("sr_cur")}catch(e){};fillForm();renderList()}
+    if(id===cur.id){cur={id:null,created:0};photos=[];info={...info,to:"",person:"",site:"",place:"",summary:"",date:today(),done:false};try{localStorage.removeItem("sr_cur")}catch(e){};fillForm();renderList()}
     renderSaved();toast("削除しました");
   }
 });
@@ -383,7 +392,15 @@ $("split").addEventListener("change",e=>{info.split=e.target.checked;saveInfo();
 $("layouts").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;info.layout=b.dataset.l;saveInfo();syncLayout();renderList()});
 function syncLayout(){[...$("layouts").children].forEach(b=>b.classList.toggle("on",b.dataset.l===info.layout))}
 $("newBtn").onclick=()=>newReport();$("expBtn").onclick=exportAll;$("newBtn2").onclick=()=>newReport();
-function fillForm(){["title","to","person","site","date","place","summary"].forEach(k=>$(k).value=info[k]||"");$("split").checked=!!info.split;syncLayout()}
+function doneHTML(){
+  return info.done
+    ?`<div class="lb">状態：<span class="st ok">完成</span><small>直したい時は「作成中に戻す」を押します</small></div><button class="donebtn back" data-done="0">作成中に戻す</button>`
+    :`<div class="lb">状態：<span class="st wip">作成中</span><small>出来上がったら押してください</small></div><button class="donebtn" data-done="1">✓ 完成にする</button>`;
+}
+function renderDone(){const c=$("doneCard");if(c)c.innerHTML=doneHTML();const b=$("prevDone");if(b)b.innerHTML=doneHTML()}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-done]");if(!b)return;
+  info.done=b.dataset.done==="1";saveReport();renderDone();toast(info.done?"完成にしました":"作成中に戻しました")});
+function fillForm(){renderDone();["title","to","person","site","date","place","summary"].forEach(k=>$(k).value=info[k]||"");$("split").checked=!!info.split;syncLayout()}
 
 /* ---------- 指で並び替え ---------- */
 let drag=null,scrollTimer=null;
@@ -439,9 +456,9 @@ $("impFile").addEventListener("change",async e=>{
     if(ex&&ex.updated>=r.updated){skip++;continue}
     const thumb=r.photos&&r.photos[0]?await mkThumb(r.photos[0].src):"";
     await idb("reports","readwrite",s=>s.put(r,r.id));
-    await idb("meta","readwrite",s=>s.put({id:r.id,to:r.info.to,person:r.info.person,site:r.info.site,date:r.info.date,title:r.info.title,count:(r.photos||[]).length,updated:r.updated,thumb},r.id));
+    await idb("meta","readwrite",s=>s.put({id:r.id,to:r.info.to,person:r.info.person,site:r.info.site,date:r.info.date,title:r.info.title,done:!!r.info.done,count:(r.photos||[]).length,updated:r.updated,thumb},r.id));
     ex?upd++:added++;
-    if(r.id===cur.id){info={...info,...r.info};photos=r.photos||[];fillForm();renderList()}
+    if(r.id===cur.id){info={...info,done:false,...r.info};photos=r.photos||[];fillForm();renderList()}
   }
   renderSaved();
   ask(`読み込みました。<br>新しく追加：${added}件<br>更新：${upd}件<br>変更なし：${skip}件`,true);
@@ -504,7 +521,7 @@ function pagesHTML(){
       <div class="p-foot"><span>${esc(info.site)}</span><span>${pi+1} / ${total}</span></div></div>`;
   });
 }
-function renderPreview(){$("preview").innerHTML=pagesHTML().map(h=>`<div class="pwrap">${h}</div>`).join("");fitPreview()}
+function renderPreview(){$("preview").innerHTML=`<div class="prevbar"><div class="card donecard" id="prevDone"></div></div>`+pagesHTML().map(h=>`<div class="pwrap">${h}</div>`).join("");renderDone();fitPreview()}
 function fitPreview(){
   const P=$("preview");if(P.style.display==="none")return;
   const mm=96/25.4,pw=210*mm,ph=297*mm,s=Math.min(window.innerWidth-24,820)/pw;
@@ -718,7 +735,7 @@ $("hCont").onclick=()=>show("edit");
 $("hRecent").addEventListener("click",e=>{const r=e.target.closest(".rp");if(r)openReport(r.dataset.id)});
 async function renderHome(){
   await doSave();await refreshLists();
-  const has=!!cur.id;
+  const has=!!cur.id&&!info.done;
   $("hCont").style.display=has?"":"none";
   $("hContSub").textContent=has?`${info.to||"送付先なし"}／${info.site||"現場名なし"}（${photos.length}枚）`:"";
   const n=metaCache.length,co=new Set(metaCache.map(m=>m.to||"")).size;
@@ -726,7 +743,7 @@ async function renderHome(){
   const rec=metaCache.slice().sort((a,b)=>b.updated-a.updated).slice(0,5);
   $("hRecentCard").style.display=rec.length?"":"none";renderOd();odSoon(300);
   $("hRecent").innerHTML=rec.map(m=>`<div class="rp" data-id="${m.id}">${m.thumb?`<img src="${m.thumb}">`:`<div class="ni"></div>`}
-    <div class="m"><b>${esc(m.site||"（現場名なし）")}</b><span>${esc(m.to||"送付先なし")}・${fmt(m.date)}・${m.count}枚</span>${m.id===cur.id?'<span class="now">編集中</span>':""}</div><span style="color:#bbb;font-size:22px">›</span></div>`).join("");
+    <div class="m"><b>${esc(m.site||"（現場名なし）")}</b><span>${esc(m.to||"送付先なし")}・${fmt(m.date)}・${m.count}枚</span>${m.done?'<span class="st ok">完成</span>':'<span class="st wip">作成中</span>'}</div><span style="color:#bbb;font-size:22px">›</span></div>`).join("");
 }
 const FRAME_MSG="この画面（Claude内の表示）では保存・印刷が使えません。<br>GitHub Pagesに置いたURLをSafariで開くと、<b>PDF・Excel</b>どちらも保存できます。<br><br>今はプレビューで仕上がりを確認できます。";
 function loadJs(u){return new Promise((ok,ng)=>{const sc=document.createElement("script");sc.src=u;sc.onload=ok;sc.onerror=()=>ng(new Error("読み込めませんでした（電波を確認してください）"));document.head.appendChild(sc)})}
@@ -846,13 +863,13 @@ async function odSync(){
     // OneDrive → この端末
     for(const r of rmap.values()){
       const l=lmap.get(r.id);
-      if(r.x){if(l&&l.updated<=r.updated){await idb("reports","readwrite",x=>x.delete(r.id));await idb("meta","readwrite",x=>x.delete(r.id));lmap.delete(r.id);localChanged=true;if(r.id===cur.id){cur={id:null,created:0};photos=[];info={...info,to:"",person:"",site:"",place:"",summary:"",date:today()};curChanged=true}}continue}
+      if(r.x){if(l&&l.updated<=r.updated){await idb("reports","readwrite",x=>x.delete(r.id));await idb("meta","readwrite",x=>x.delete(r.id));lmap.delete(r.id);localChanged=true;if(r.id===cur.id){cur={id:null,created:0};photos=[];info={...info,to:"",person:"",site:"",place:"",summary:"",date:today(),done:false};curChanged=true}}continue}
       if(!l||l.updated<r.updated){
         if(r.id===cur.id&&pendingDirty)continue;
         const full=await odGet("reports/"+r.id+".json");if(!full)continue;
         await idb("reports","readwrite",x=>x.put(full,full.id));
         await idb("meta","readwrite",x=>x.put({...r},r.id));lmap.set(r.id,{...r});localChanged=true;
-        if(r.id===cur.id){info={...info,...full.info};photos=full.photos||[];cur.thumb=r.thumb;cur.thumbOf=photos[0]&&photos[0].id;curChanged=true}
+        if(r.id===cur.id){info={...info,done:false,...full.info};photos=full.photos||[];cur.thumb=r.thumb;cur.thumbOf=photos[0]&&photos[0].id;curChanged=true}
       }
     }
     // この端末 → OneDrive
@@ -898,7 +915,7 @@ setInterval(()=>{if(!document.hidden)odSoon(100)},60000);
   try{const s=JSON.parse(localStorage.getItem("sr_info")||"null");if(s)info={...info,title:s.title||info.title,layout:s.layout||info.layout,split:s.split!==false};last=localStorage.getItem("sr_cur")}catch(e){}
   await openDB();
   let r=last?await idb("reports","readonly",s=>s.get(last)):null;
-  if(r){cur={id:r.id,created:r.created};info={...info,...r.info};photos=r.photos||[]}
+  if(r){cur={id:r.id,created:r.created};info={...info,done:false,...r.info};photos=r.photos||[]}
   else{const old=await idb("kv","readonly",s=>s.get("photos"));if(Array.isArray(old)&&old.length){photos=old;saveReport()}}
   if(!info.date)info.date=today();
   fillForm();renderList();show("home");odInit();
