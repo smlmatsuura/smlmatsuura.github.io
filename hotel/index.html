@@ -85,6 +85,7 @@ html,body{overflow-x:hidden}
 .tw table{font-size:11px;width:100%}.tw td,.tw th{padding:5px 2px}.tw td:first-child{white-space:normal;line-height:1.3}.tw .rt{font-size:9px;padding:0 5px;margin:1px 0 0}
 .tw td,.tw th{white-space:nowrap}
 .tw tr.tt td{font-weight:700;border-top:2px solid var(--ln)}
+.gh{display:flex;justify-content:space-between;align-items:center;margin:16px 14px 6px;font-weight:700;font-size:15px;cursor:pointer}
 .emp{text-align:center;color:var(--sub);padding:30px 14px;line-height:1.7}
 #login{display:none;text-align:center;padding:80px 24px}
 #login p{color:var(--sub);line-height:1.6}
@@ -97,7 +98,7 @@ html,body{overflow-x:hidden}
 <header><div class="row" id="hr"></div>
 <div class="sub" id="st" style="margin-top:4px"></div></header>
 <main id="main"></main>
-<nav><button data-tab="d">日程</button><button data-tab="x">経費</button><button data-tab="r">結果</button><button data-tab="p">印刷</button><button data-tab="w">職人</button></nav>
+<nav><button data-tab="i">案件</button><button data-tab="d">日程</button><button data-tab="x">経費</button><button data-tab="r">結果</button><button data-tab="p">印刷</button><button data-tab="w">職人</button></nav>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
 <script>
@@ -161,12 +162,11 @@ function wcard(p,c){if(!c.rows.length)return"";return'<div class="sub" style="ma
 function vPW(p){var c=calc(p);if(!c.rows.length)return'<div class="emp">「日程」で人を選ぶと、ここにその案件の金額が出ます。</div>';return wcard(p,c)+'<div class="sub" style="margin:10px 14px">名前・区分・色の変更や、人の追加は、案件一覧の「職人の登録・編集」から行います。ここの金額は、この案件だけに反映されます。</div>'}
 function vCost(p){var c=calc(p),xl=xs(p);
 var xr=xl.map(function(x,i){return'<div class="vr"><input class="nm" data-xi="'+i+'" data-xf="n" value="'+esc(x.n)+'"><input type="number" inputmode="decimal" step="any" data-xi="'+i+'" data-xf="a" value="'+(x.a==null?"":x.a)+'" style="width:110px"></div>'}).join("");
-return'<div class="card"><label>案件名<input data-id="'+p.id+'" data-f="n" value="'+esc(p.n)+'"></label>'+vr("売上（円）",p.id,"v",p.v)+'</div>'+
+return ''+
 '<div class="card"><b>移動費まわり</b><div class="row" style="margin-top:8px">'+num("高速代",p.id,"hw",p.hw)+'</div><div class="row">'+num("距離(km)",p.id,"km",p.km)+num("燃費(km/L)",p.id,"ef",p.ef)+num("ガソリン単価",p.id,"gp",p.gp)+'</div>'+
 '<div class="kv"><span>ガソリン代（計算）</span><span>'+yen(c.gas)+'円</span></div><div class="kv"><span>移動費の目安（千円切上）</span><span>'+yen(c.hint)+'円</span></div><div class="sub" style="margin-top:6px">目安は、高速代とガソリン代の合計を千円単位に切り上げた金額です。受け元の「移動費」に入れる金額の参考にしてください。</div></div>'+
 '<div class="card"><b>宿泊</b><div class="row" style="margin-top:8px">'+num("1泊単価",p.id,"hn",p.hn)+num("人数",p.id,"hp",p.hp)+num("泊数",p.id,"hd",p.hd)+'</div>'+'<div class="kv"><span>宿泊費（計算）</span><span>'+yen(c.hotel)+'円</span></div></div>'+
-'<div class="card"><b>その他の経費</b><div class="sub" style="margin:4px 0 6px">項目名は書き換えられます。使わない項目は金額を空のままにしてください。</div>'+xr+'<div class="kv"><span>その他の経費 合計</span><span>'+yen(c.ex2)+'円</span></div><button class="btn" data-xa="1" style="width:100%;margin-top:8px">＋ 項目を追加</button></div>'+
-'<div style="text-align:center">'+dbtn(p.id).replace("削除","この案件を削除")+'</div>'}
+'<div class="card"><b>その他の経費</b><div class="sub" style="margin:4px 0 6px">項目名は書き換えられます。使わない項目は金額を空のままにしてください。</div>'+xr+'<div class="kv"><span>その他の経費 合計</span><span>'+yen(c.ex2)+'円</span></div><button class="btn" data-xa="1" style="width:100%;margin-top:8px">＋ 項目を追加</button></div>'}
 function vRes(p){var c=calc(p),h='<div class="card bal '+(c.bal<0?"n":"p")+'"><div class="sub">残金（売上 − 経費合計）</div><div class="big '+(c.bal<0?"neg":"pos")+'">'+yen(c.bal)+'円</div>'+
 '<div class="kv"><span>売上</span><span>'+yen(p.v||0)+'円</span></div><div class="kv"><span>経費合計</span><span>'+yen(c.total)+'円</span></div></div>'+
 '<div class="card"><b>経費の内訳</b>'+[["人件費（職人）",c.lab],["人件費（掃除）",c.cl],["運転代及び移動費",c.mv],["諸経費",c.ex],["職人用その他",c.ot],["宿泊費",c.hotel],].concat(xs(p).map(function(x){return[x.n,+x.a||0]})).map(function(r){return'<div class="kv"><span>'+r[0]+'</span><span>'+yen(r[1])+'円</span></div>'}).join("")+'</div>'+
@@ -198,16 +198,28 @@ r("掃除",function(q){return q.b.length?q.b.length+"人":""})+
 r("メンバー",function(q){var s="";for(var i=0;i<n;i++)s+='<div'+(q.names[i]?' style="background:'+wcol(q.names[i])+'"':'')+'>'+(q.names[i]?esc(q.names[i].n):"")+'</div>';return s},"mem")+'</table></div>'});
 h+='</div>'}
 return h}
-function vList(){var ps=K("p").sort(function(a,b){return(b.s||0)-(a.s||0)}),h='<div class="card"><b>新しい案件</b><div class="row" style="margin-top:8px"><input id="npn" placeholder="案件名（例：ホテルGV新大阪）"><button class="btn p" id="mk">作成</button></div></div>';
-if(!ps.length)h+='<div class="emp">案件がまだありません。<br>上の欄に名前を入れて作成してください。</div>';
+var curC=null;
+function clients(){var o={};K("p").forEach(function(p){if(p.cl)o[p.cl]=1});K("c").forEach(function(c){if(c.n)o[c.n]=1});return Object.keys(o).sort()}
+function cpick(cs,cur){return'<select data-cs="'+cs+'" style="margin-top:3px"><option value="">（未設定）</option>'+clients().map(function(c){return'<option value="'+esc(c)+'"'+(c===cur?" selected":"")+'>'+esc(c)+'</option>'}).join("")+'<option value="__new">＋新しい取引先を入力</option></select><input data-cn="'+cs+'" placeholder="新しい取引先名" style="display:none;margin-top:6px">'}
+function vInfo(p){return'<div class="card"><label>案件名<input data-id="'+p.id+'" data-f="n" value="'+esc(p.n)+'"></label><label style="margin-top:8px">取引先'+cpick(p.id,p.cl||"")+'</label><label style="margin-top:8px">現場・住所<input data-id="'+p.id+'" data-f="ad" value="'+esc(p.ad||"")+'"></label>'+vr("売上（円）",p.id,"v",p.v)+'<label style="margin-top:8px">メモ<textarea rows="4" data-id="'+p.id+'" data-f="mo">'+esc(p.mo||"")+'</textarea></label></div><div style="text-align:center">'+dbtn(p.id).replace("削除","この案件を削除")+'</div>'}
+function vList(){var ps=K("p"),h='<div class="card"><b>新しい取引先</b><div class="row" style="margin-top:8px"><input id="ncn" placeholder="取引先名"><button class="btn p" id="mc">追加</button></div></div>';
+var ks=clients();if(ps.some(function(p){return!p.cl}))ks.push("");
+if(!ks.length)h+='<div class="emp">取引先がまだありません。<br>上の欄に取引先名を入れて追加してください。</div>';
+ks.forEach(function(k){var arr=ps.filter(function(p){return(p.cl||"")===k}),v=0,b=0;arr.forEach(function(p){v+=p.v||0;b+=calc(p).bal});
+h+='<div class="card pj" data-oc="g:'+esc(k)+'"><div class="pn">'+esc(k||"取引先未設定")+'</div><div class="sub">案件 '+arr.length+'件</div></div>'});
+return h}
+function vClient(){var ps=K("p").filter(function(p){return(p.cl||"")===curC}).sort(function(a,b){return(b.s||0)-(a.s||0)}),h='<div class="card"><b>新しい案件</b><div class="row" style="margin-top:8px"><input id="npn" placeholder="案件名（例：ホテルGV新大阪）"><button class="btn p" id="mk">作成</button></div></div>';
+if(!ps.length)h+='<div class="emp">この取引先の案件はまだありません。<br>上の欄に案件名を入れて作成してください。</div>';
 ps.forEach(function(p){var c=calc(p),n=c.ds.length,rg=n?dfmt(c.ds[0].dt).slice(0,-3)+"〜"+dfmt(c.ds[n-1].dt).slice(0,-3):"日程なし";
 h+='<div class="card pj" data-open="'+p.id+'"><div class="pn">'+esc(p.n)+'</div><div class="sub">'+rg+'　'+n+'日　売上 '+yen(p.v||0)+'円</div><div class="pb '+(c.bal<0?"neg":"pos")+'">残金 '+yen(c.bal)+'円</div></div>'});
-return h+'<div style="margin:14px 12px"><button class="btn" id="wk" style="width:100%">職人の登録・編集</button></div>'}
-function render(){var p=curP();if(view==="proj"&&!p)view="list";
+if(!ps.length&&curC)h+='<div style="text-align:center"><button class="btn" id="dc" style="border:0;color:var(--wn);background:none">この取引先を削除</button></div>';
+return h}
+function render(){var p=curP();if(view==="proj"&&!p)view=curC!==null?"client":"list";
 var hr,h,rf='<button class="btn" id="rf">↻</button>';
-if(view==="list"){hr='<b class="ttl">案件一覧</b>'+rf;h=vList()}
+if(view==="list"){hr='<b class="ttl">取引先一覧</b><button class="btn" id="wk">職人</button>'+rf;h=vList()}
+else if(view==="client"){hr='<button class="btn" id="bk">‹ 取引先一覧</button><b class="ttl">'+esc(curC||"取引先未設定")+'</b>'+rf;h=vClient()}
 else if(view==="work"){hr='<button class="btn" id="bk">‹ 戻る</button><b class="ttl">職人の登録</b>'+rf;h=vWork()}
-else{hr='<button class="btn" id="bk">‹ 案件一覧</button><b class="ttl">'+esc(p.n)+'</b>'+rf;h=tab==="w"?vPW(p):tab==="d"?vDays(p):tab==="x"?vCost(p):tab==="p"?vPrint(p):vRes(p)}
+else{hr='<button class="btn" id="bk">‹ 戻る</button><b class="ttl">'+esc(p.n)+'</b>'+rf;h=tab==="i"?vInfo(p):tab==="w"?vPW(p):tab==="d"?vDays(p):tab==="x"?vCost(p):tab==="p"?vPrint(p):vRes(p)}
 $("hr").innerHTML=hr;
 document.querySelector("nav").style.display=view==="proj"?"flex":"none";
 Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){b.className=b.dataset.tab===tab?"on":""});
@@ -231,9 +243,12 @@ if(navigator.canShare&&navigator.canShare({files:[f]})){return navigator.share({
 var u=URL.createObjectURL(blob);window.open(u,"_blank");b.textContent="PDFにして共有（印刷・保存）"
 }).catch(function(e){if(host.parentNode)document.body.removeChild(host);b.disabled=false;b.textContent="失敗："+(e&&e.message||e)})}
 document.addEventListener("click",function(e){var t=e.target,ds=t.dataset;if(!ds)return;var o=t.closest?t.closest("[data-open]"):null;if(o){pid=o.dataset.open;view="proj";tab="d";armed=null;render();window.scrollTo(0,0);return}
-if(t.id==="bk"){view="list";armed=null;render();window.scrollTo(0,0)}
+var oc=t.closest?t.closest("[data-oc]"):null;if(oc){curC=oc.dataset.oc.slice(2);view="client";armed=null;render();window.scrollTo(0,0);return}
+if(t.id==="bk"){if(view==="proj"){var pp0=curP();curC=pp0?(pp0.cl||""):curC;view=curC!==null?"client":"list"}else{view="list";curC=null}armed=null;render();window.scrollTo(0,0)}
 else if(t.id==="wk"){view="work";render();window.scrollTo(0,0)}
-else if(t.id==="mk"){var nn=$("npn").value.trim();if(nn){var np=add({k:"p",s:Date.now(),n:nn,v:0});pid=np.id;view="proj";tab="d";render();window.scrollTo(0,0);push()}}
+else if(t.id==="mk"){var nn=$("npn").value.trim();if(nn){var np=add({k:"p",s:Date.now(),n:nn,cl:curC||"",v:0});pid=np.id;view="proj";tab="i";render();window.scrollTo(0,0);push()}}
+else if(t.id==="mc"){var cn2=$("ncn").value.trim();if(cn2){if(clients().indexOf(cn2)<0)add({k:"c",s:Date.now(),n:cn2});curC=cn2;view="client";render();window.scrollTo(0,0);push()}}
+else if(t.id==="dc"){K("c").filter(function(c){return c.n===curC}).forEach(function(c){del(c.id)});curC=null;view="list";render();push()}
 else if(t.id==="rf"){pull(true)}
 else if(ds.tab){tab=ds.tab;armed=null;render();window.scrollTo(0,0)}
 else if(ds.xa){var pa=curP();setXs(pa,function(a){a.push({n:"新しい項目",a:0})});render();push()}
@@ -245,7 +260,10 @@ else if(t.id==="pr"){window.print()}
 else if(t.id==="pdf"){mkpdf(t)}
 else if(t.id==="wa"){var n=$("wn").value.trim();if(n){add({k:"w",s:Date.now(),n:n,r:0,m:0,e:0,o:0,role:$("wk").value});render();push()}}
 else if(t.id==="wi"){var b=Date.now();$("wt").value.split("\n").forEach(function(ln,i){var f=ln.split(/[,\t]/).map(function(x){return x.trim()});if(!f[0])return;add({k:"w",s:b+i,n:f[0],r:+f[1]||0,m:+f[2]||0,e:+f[3]||0,o:+f[4]||0,role:f[5]==="2"?"u":f[5]==="1"?"c":"k",col:/^[0-9a-fA-F]{6}$/.test(f[6]||"")?f[6]:undefined})});render();push()}});
-document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;if(ds&&ds.xi!==undefined){var pp=curP();if(pp){setXs(pp,function(a){var x=a[+ds.xi];if(!x)return;if(ds.xf==="n")x.n=t.value.trim()||"（項目名）";else x.a=parseFloat(t.value)||0});render();push()}return}
+document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;
+if(ds&&ds.cs!==undefined){var nx=t.parentNode.querySelector("[data-cn]");if(t.value==="__new"){nx.style.display="block";nx.focus();return}nx.style.display="none";if(ds.cs!=="new"){var q=find(ds.cs);if(q){q.cl=t.value;touch(q);render();push()}}return}
+if(ds&&ds.cn!==undefined){if(ds.cn!=="new"){var q2=find(ds.cn);if(q2){q2.cl=t.value.trim();touch(q2);render();push()}}return}
+if(ds&&ds.xi!==undefined){var pp=curP();if(pp){setXs(pp,function(a){var x=a[+ds.xi];if(!x)return;if(ds.xf==="n")x.n=t.value.trim()||"（項目名）";else x.a=parseFloat(t.value)||0});render();push()}return}
 if(ds&&ds.pw){var p2=curP();if(p2){var w2=find(ds.pw);if(w2){var cur=rate(p2,w2);cur[ds.pf]=parseFloat(t.value)||0;p2.pw=Object.assign({},p2.pw);p2.pw[w2.id]=cur;touch(p2);render();push()}}return}
 if(!ds||!ds.id||!ds.f)return;var it=find(ds.id);if(!it)return;
 if(it.k==="w"&&/^[rmeo]$/.test(ds.f)){K("p").forEach(function(pp){if(pp.pw&&pp.pw[it.id])return;pp.pw=Object.assign({},pp.pw);pp.pw[it.id]=rate({},it);touch(pp)})}
