@@ -123,7 +123,9 @@ function role(w){return w.role||(w.c?"c":"k")}
 function cn(m,ws){var a=0,u=0,c=0;ws.forEach(function(w){if(m.indexOf(w.id)<0)return;var r=role(w);if(r==="c")c++;else if(r==="u")u++;else a++});return(u?"受け元"+u+"・":"")+"職人"+a+(c?"・掃除"+c:"")+"　計"+(a+u+c)+"名"}
 function bys(a,b){return(a.s||0)-(b.s||0)}
 function merge(a,b){var m={};a.concat(b).forEach(function(i){var c=m[i.id];if(!c||(i.t||0)>(c.t||0))m[i.id]=i});return Object.keys(m).map(function(k){return m[k]})}
-function typing(){var a=document.activeElement;return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA")&&a.closest("#main")}
+var cpk=0;function colSet(t){var it=find(t.dataset.id);if(!it)return;cpk=Date.now();it.col=t.value.replace("#","");touch(it);var cd=t.closest(".card");if(cd)cd.style.borderLeftColor=t.value;push()}
+document.addEventListener("input",function(e){var t=e.target;if(t&&t.type==="color"&&t.dataset&&t.dataset.f==="col")colSet(t)});
+function typing(){if(Date.now()-cpk<5000)return true;var a=document.activeElement;return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA")&&a.closest("#main")}
 function status(m){$("st").textContent=m}
 function token(){var acc=pca.getActiveAccount();return pca.acquireTokenSilent({scopes:SC,account:acc}).then(function(r){return r.accessToken}).catch(function(){pca.acquireTokenRedirect({scopes:SC});return new Promise(function(){})})}
 function gr(m,b){return token().then(function(t){var h={Authorization:"Bearer "+t};if(b)h["Content-Type"]="application/json";return fetch(URL_F,{method:m,headers:h,body:b})})}
@@ -271,7 +273,7 @@ else if(t.id==="pvs"){mkPdf(t)}
 else if(t.id==="pvi"){mkImg(t)}
 else if(t.id==="wa"){var n=$("wn").value.trim();if(n){add({k:"w",s:Date.now(),n:n,r:0,m:0,e:0,o:0,role:$("wk").value});render();push()}}
 else if(t.id==="wi"){var b=Date.now();$("wt").value.split("\n").forEach(function(ln,i){var f=ln.split(/[,\t]/).map(function(x){return x.trim()});if(!f[0])return;add({k:"w",s:b+i,n:f[0],r:+f[1]||0,m:+f[2]||0,e:+f[3]||0,o:+f[4]||0,role:f[5]==="2"?"u":f[5]==="1"?"c":"k",col:/^[0-9a-fA-F]{6}$/.test(f[6]||"")?f[6]:undefined})});render();push()}});
-document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;
+document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;if(t.type==="color"&&ds&&ds.f==="col"){colSet(t);return}
 if(ds&&ds.cs!==undefined){var nx=t.parentNode.querySelector("[data-cn]");if(t.value==="__new"){nx.style.display="block";nx.focus();return}nx.style.display="none";if(ds.cs!=="new"){var q=find(ds.cs);if(q){q.cl=t.value;touch(q);render();push()}}return}
 if(ds&&ds.cn!==undefined){if(ds.cn!=="new"){var q2=find(ds.cn);if(q2){q2.cl=t.value.trim();touch(q2);render();push()}}return}
 if(ds&&ds.xi!==undefined){var pp=curP();if(pp){setXs(pp,function(a){var x=a[+ds.xi];if(!x)return;if(ds.xf==="n")x.n=t.value.trim()||"（項目名）";else x.a=parseFloat(t.value)||0});render();push()}return}
