@@ -116,7 +116,7 @@ function touch(it){it.t=Date.now()}
 function rate(p,w){var q=(p.pw&&p.pw[w.id])||{};return{r:q.r!=null?q.r:(w.r||0),m:q.m!=null?q.m:(w.m||0),e:q.e!=null?q.e:(w.e||0),o:q.o!=null?q.o:(w.o||0)}}
 function uid(){return"x"+Date.now().toString(36)+Math.floor(Math.random()*1e4)}
 function add(o){o.id=uid();o.t=Date.now();all.push(o);return o}
-var PAL=["F4CCCC","FCE5CD","FFF2CC","D9EAD3","D0E0E3","CFE2F3","D9D2E9","EAD1DC","E6B8AF","F9CB9C","FFE599","B6D7A8","A2C4C9","9FC5E8","B4A7D6","D5A6BD","EA9999","F9B37C"];
+var PAL=["F4A6A0","F7B77A","F5D96B","A8D98A","6FCFB0","7CC4EC","8FA8F0","B79CEB","E39BD0","D4B08C","C3D86B","F08FA8","9DB4C0","E8A87C","8CCFD4","C9A0DC","B5C99A","F2B8C6"];
 function wcol(w){if(w.col&&/^#?[0-9a-fA-F]{6}$/.test(w.col))return"#"+w.col.replace("#","");var i=K("w").sort(bys).indexOf(w);return"#"+PAL[(i<0?0:i)%PAL.length]}
 var RN={k:"職人",u:"受け元",c:"掃除"};
 function role(w){return w.role||(w.c?"c":"k")}
@@ -179,7 +179,7 @@ function vRes(p){var c=calc(p),h='<div class="card bal '+(c.bal<0?"n":"p")+'"><d
 function vWork(){var ws=K("w").sort(bys),h='<div class="sub" style="margin:10px 14px 0">ここでは、名前・区分・色を決めます。金額は、案件の「職人」タブで案件ごとに入れます。区分が「受け元」の人は、日当を計算せず、移動費などだけを計算します。人数には数えますが、職人数には入れません。左端の色は、印刷の背景色です。</div>';
 ws.forEach(function(w){h+='<div class="card" style="border-left:10px solid '+wcol(w)+'"><div class="dh" style="flex-wrap:wrap"><input type="color" data-id="'+w.id+'" data-f="col" value="'+wcol(w)+'" style="width:44px;height:38px;padding:2px;flex:none"><input data-id="'+w.id+'" data-f="n" value="'+esc(w.n)+'" style="width:auto;flex:1 1 90px;min-width:0"><select data-id="'+w.id+'" data-f="role" style="width:auto;flex:none">'+[["k","職人"],["u","受け元"],["c","掃除"]].map(function(o){return'<option value="'+o[0]+'"'+(role(w)===o[0]?" selected":"")+'>'+o[1]+'</option>'}).join("")+'</select>'+dbtn(w.id)+'</div></div>'});
 h+='<div class="card"><b>職人を追加</b><div class="row" style="margin-top:8px"><label>名前<input id="wn"></label><label>区分<select id="wk"><option value="k">職人</option><option value="u">受け元（日当なし）</option><option value="c">掃除</option></select></label></div><button class="btn p" id="wa" style="width:100%;margin-top:8px">追加</button></div>'+
-'';return h}
+'<button class="btn" id="wrc" style="width:100%;margin:10px 0">'+(armed==="wrc"?"もう一度押すと、全員の色を入れ替えます":"おすすめの色に整える（全員）")+'</button>';return h}
 function vPrint(p){var c=calc(p),ds=c.ds;if(!ds.length)return'<div class="emp">日程タブで日を入力すると、ここに印刷用の表が出ます。</div>';
 var ws=K("w").sort(bys),map={};ds.forEach(function(d){map[d.dt]=d});
 var f=new Date(ds[0].dt+"T00:00:00");f.setDate(f.getDate()-((f.getDay()+6)%7));
@@ -271,6 +271,7 @@ else if(t.id==="pdf"){mkprev(t)}
 else if(t.id==="pvx"){var pv=$("pv");if(pv)pv.parentNode.removeChild(pv);pdfF=null}
 else if(t.id==="pvs"){mkPdf(t)}
 else if(t.id==="pvi"){mkImg(t)}
+else if(t.id==="wrc"){if(armed==="wrc"){armed=null;K("w").sort(bys).forEach(function(w,i){w.col=PAL[i%PAL.length];touch(w)});render();push()}else{armed="wrc";render()}}
 else if(t.id==="wa"){var n=$("wn").value.trim();if(n){add({k:"w",s:Date.now(),n:n,r:0,m:0,e:0,o:0,role:$("wk").value});render();push()}}
 else if(t.id==="wi"){var b=Date.now();$("wt").value.split("\n").forEach(function(ln,i){var f=ln.split(/[,\t]/).map(function(x){return x.trim()});if(!f[0])return;add({k:"w",s:b+i,n:f[0],r:+f[1]||0,m:+f[2]||0,e:+f[3]||0,o:+f[4]||0,role:f[5]==="2"?"u":f[5]==="1"?"c":"k",col:/^[0-9a-fA-F]{6}$/.test(f[6]||"")?f[6]:undefined})});render();push()}});
 document.addEventListener("change",function(e){var t=e.target,ds=t.dataset;if(t.type==="color"&&ds&&ds.f==="col"){colSet(t);return}
@@ -283,7 +284,7 @@ if(it.k==="w"&&/^[rmeo]$/.test(ds.f)){K("p").forEach(function(pp){if(pp.pw&&pp.p
 it[ds.f]=ds.b?t.checked:ds.n?(parseFloat(t.value)||0):t.value;if(ds.f==="n"&&!it[ds.f])it[ds.f]="（名前なし）";touch(it);render();push()});
 $("lg").onclick=function(){pca.loginRedirect({scopes:SC})};
 function start(){$("login").style.display="none";$("app").style.display="block";status("読み込み中…");
-var SEED=[{id:"w0",k:"w",s:1,n:"森岡哲也",r:0,m:27000,e:700,o:8000,role:"u",col:"F4CCCC",t:1},{id:"w1",k:"w",s:2,n:"木田健一郎",r:50000,m:0,e:0,o:0,role:"k",col:"FCE5CD",t:1},{id:"w2",k:"w",s:3,n:"柏木竣太",r:50000,m:0,e:0,o:0,role:"k",col:"FFF2CC",t:1},{id:"w3",k:"w",s:4,n:"田崎一也",r:50000,m:0,e:0,o:0,role:"k",col:"D9EAD3",t:1},{id:"w4",k:"w",s:5,n:"安藤匡摩",r:50000,m:0,e:0,o:0,role:"k",col:"D0E0E3",t:1},{id:"w5",k:"w",s:6,n:"皆川豪志",r:50000,m:0,e:0,o:0,role:"k",col:"CFE2F3",t:1},{id:"w6",k:"w",s:7,n:"山田楓",r:50000,m:0,e:0,o:0,role:"k",col:"D9D2E9",t:1},{id:"w7",k:"w",s:8,n:"石川昌和",r:50000,m:0,e:0,o:0,role:"k",col:"EAD1DC",t:1},{id:"w8",k:"w",s:9,n:"岡林正人",r:50000,m:0,e:0,o:0,role:"k",col:"E6B8AF",t:1},{id:"w9",k:"w",s:10,n:"田窪正衛",r:50000,m:0,e:0,o:0,role:"k",col:"F9CB9C",t:1},{id:"w10",k:"w",s:11,n:"高見了司",r:50000,m:0,e:0,o:0,role:"k",col:"FFE599",t:1},{id:"w11",k:"w",s:12,n:"松浦千愛",r:25000,m:0,e:0,o:0,role:"c",col:"EA9999",t:1},{id:"w12",k:"w",s:13,n:"佐藤大典",r:25000,m:0,e:0,o:0,role:"c",col:"F9B37C",t:1}];
+var SEED=[{id:"w0",k:"w",s:1,n:"森岡哲也",r:0,m:27000,e:700,o:8000,role:"u",col:"F4A6A0",t:1},{id:"w1",k:"w",s:2,n:"木田健一郎",r:50000,m:0,e:0,o:0,role:"k",col:"F7B77A",t:1},{id:"w2",k:"w",s:3,n:"柏木竣太",r:50000,m:0,e:0,o:0,role:"k",col:"F5D96B",t:1},{id:"w3",k:"w",s:4,n:"田崎一也",r:50000,m:0,e:0,o:0,role:"k",col:"A8D98A",t:1},{id:"w4",k:"w",s:5,n:"安藤匡摩",r:50000,m:0,e:0,o:0,role:"k",col:"6FCFB0",t:1},{id:"w5",k:"w",s:6,n:"皆川豪志",r:50000,m:0,e:0,o:0,role:"k",col:"7CC4EC",t:1},{id:"w6",k:"w",s:7,n:"山田楓",r:50000,m:0,e:0,o:0,role:"k",col:"8FA8F0",t:1},{id:"w7",k:"w",s:8,n:"石川昌和",r:50000,m:0,e:0,o:0,role:"k",col:"B79CEB",t:1},{id:"w8",k:"w",s:9,n:"岡林正人",r:50000,m:0,e:0,o:0,role:"k",col:"E39BD0",t:1},{id:"w9",k:"w",s:10,n:"田窪正衛",r:50000,m:0,e:0,o:0,role:"k",col:"D4B08C",t:1},{id:"w10",k:"w",s:11,n:"高見了司",r:50000,m:0,e:0,o:0,role:"k",col:"C3D86B",t:1},{id:"w11",k:"w",s:12,n:"松浦千愛",r:25000,m:0,e:0,o:0,role:"c",col:"F08FA8",t:1},{id:"w12",k:"w",s:13,n:"佐藤大典",r:25000,m:0,e:0,o:0,role:"c",col:"9DB4C0",t:1}];
 load().then(function(r){all=(r&&r.items)||[];var seeded=false;if(!all.length){SEED.forEach(function(o){o.t=Date.now();all.push(o)});seeded=true}render();if(seeded)push();status("同期済み");setInterval(function(){pull(false)},10000);document.addEventListener("visibilitychange",function(){if(!document.hidden)pull(false)})})
 .catch(function(e){status("読み込み失敗："+e.message)})}
 try{pca=new msal.PublicClientApplication({auth:{clientId:CLIENT_ID,authority:"https://login.microsoftonline.com/consumers",redirectUri:location.origin+location.pathname},cache:{cacheLocation:"localStorage"}});
