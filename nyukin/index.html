@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="売上・入金">
+<meta name="theme-color" content="#1d1d1f">
+<title>売上・入金 | SML</title>
+<style>
+:root{
+  --bg:#f4f4f2; --card:#fff; --ink:#1d1d1f; --sub:#6e6e73; --line:#e3e3e0;
+  --accent:#1d1d1f; --paid:#2f7d4f; --paid-bg:#e7f3ec; --due:#c0392b; --due-bg:#fbeaea;
+  --soon:#b9770e; --soon-bg:#fdf3e1; --quote:#8e8e93; --quote-bg:#efeff1;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;font-size:15px}
+header{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header select{width:auto;flex:none;background:#333;color:#fff;border:0;border-radius:8px;padding:6px 8px;font-size:15px}
+main{padding:12px 12px calc(84px + env(safe-area-inset-bottom))}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:#fff;border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:8px 0 10px;font-size:10.5px;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--ink);font-weight:600}
+.badge-dot{position:relative}
+.badge-dot[data-n]:not([data-n="0"])::after{content:attr(data-n);position:absolute;top:-4px;right:-10px;background:var(--due);color:#fff;
+  font-size:10px;border-radius:9px;padding:1px 5px;font-weight:700}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--sub);font-weight:600}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{background:var(--card);border-radius:14px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--sub)}
+.kpi .v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11px;color:var(--sub);margin-top:2px}
+.kpi.red{background:var(--due-bg)} .kpi.red .v{color:var(--due)}
+.kpi.wide{grid-column:1/3}
+.bars{display:flex;align-items:flex-end;gap:4px;height:150px;padding-top:6px}
+.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:100%;position:relative}
+.bar .seg{border-radius:3px 3px 0 0}
+.bar .seg.u{background:#e3b3ac}
+.bar .seg.p{background:var(--ink);border-radius:0}
+.bar .seg.p:first-child{border-radius:3px 3px 0 0}
+.bar .m{font-size:10px;color:var(--sub);text-align:center;margin-top:4px}
+.bar.sel .m{color:var(--ink);font-weight:700}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--sub);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.row{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .d{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .amt{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.row .amt small{display:block;font-weight:500;font-size:11px;margin-top:2px}
+.tag{display:inline-block;font-size:11px;border-radius:6px;padding:1px 6px;font-weight:600}
+.tag.paid{background:var(--paid-bg);color:var(--paid)}
+.tag.due{background:var(--due-bg);color:var(--due)}
+.tag.soon{background:var(--soon-bg);color:var(--soon)}
+.tag.wait{background:#eef2f7;color:#41618a}
+.tag.quote{background:var(--quote-bg);color:var(--quote)}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center}
+.chk.on{background:var(--paid);border-color:var(--paid)}
+.chk.on::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+input[type=search],input[type=text],input[type=date],input[type=number],select,textarea{
+  font:inherit;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff;color:var(--ink);width:100%}
+textarea{min-height:80px;resize:vertical}
+.toolbar input[type=search]{flex:1;min-width:0}
+.toolbar select{width:auto;min-width:0}
+.btn{font:inherit;border:0;border-radius:10px;padding:11px 14px;background:var(--ink);color:#fff;font-weight:600;font-size:15px}
+.btn.sub{background:#e9e9e6;color:var(--ink)}
+.btn.green{background:var(--paid)}
+.btn.red{background:var(--due)}
+.btn.block{width:100%;display:block;margin-top:8px}
+.btn.sm{padding:7px 10px;font-size:13px}
+.seg3{display:flex;background:#ececea;border-radius:10px;padding:3px;gap:3px}
+.seg3 button{flex:1;border:0;background:none;border-radius:8px;padding:9px 4px;font:inherit;font-size:14px;color:var(--sub)}
+.seg3 button.on{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.seg3 button.on.paid{color:var(--paid)} .seg3 button.on.quote{color:var(--quote)}
+.field{margin-top:12px}
+.field label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
+.inline{display:flex;gap:8px;align-items:center}
+.inline > *{flex:1}
+.muted{color:var(--sub);font-size:13px}
+.empty{text-align:center;color:var(--sub);padding:30px 10px;line-height:1.7}
+.grp{font-size:12px;color:var(--sub);font-weight:600;padding:12px 4px 6px;display:flex;justify-content:space-between}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg);border-radius:18px 18px 0 0;
+  max-height:92vh;overflow:auto;padding:8px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .22s,visibility .22s;visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+.sheet .grab{width:40px;height:5px;background:#ccc;border-radius:3px;margin:4px auto 10px}
+.sheet h3{margin:4px 0 4px;font-size:17px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;margin-top:10px}
+.kv dt{color:var(--sub)} .kv dd{margin:0;word-break:break-all}
+.note{white-space:pre-wrap;font-size:13px;color:var(--sub);background:#fff;border-radius:10px;padding:10px;margin-top:10px}
+.selbar{position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;background:var(--ink);color:#fff;
+  border-radius:14px;padding:10px 12px;display:none;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.selbar.show{display:flex}
+.selbar span{flex:1;font-size:13px;min-width:0}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 60px);transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.diff{color:var(--due);font-weight:600}
+.mt{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+.mt th{font-size:11px;color:var(--sub);font-weight:600;text-align:right;padding:4px 4px 6px;border-bottom:1px solid var(--line)}
+.mt td{text-align:right;padding:10px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+.mt th:first-child,.mt td:first-child{text-align:left}
+.mt td:nth-child(3){font-weight:700}
+.mt td.un{color:var(--due)}
+.mt tbody tr{cursor:pointer}
+.mt tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:#fff;border:0;border-radius:16px;padding:6px 12px;font:inherit;font-size:13px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="ttl">売上・入金</h1>
+  <select id="yearSel" aria-label="年"></select>
+</header>
+<main id="main"></main>
+
+<div class="selbar" id="selbar"><span id="selInfo"></span>
+  <button class="btn sm sub" id="selCancel">やめる</button>
+  <button class="btn sm sub" id="selMore">他</button>
+  <button class="btn sm green" id="selPay">入金済に</button>
+</div>
+
+<nav id="nav">
+  <button data-tab="home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ホーム</button>
+  <button data-tab="unpaid"><span class="badge-dot" id="unpaidBadge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>未入金</button>
+  <button data-tab="paid"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg>入金済</button>
+  <button data-tab="list"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>すべて</button>
+  <button data-tab="clients"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4v18M9 21h12V11l-6-3"/><path d="M13 13h4M13 17h4"/></svg>取引先</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M4 17v3h16v-3M12 3v12M7 10l5 5 5-5"/></svg>データ</button>
+</nav>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+<input type="file" id="jsonFile" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+/* ===== 保存 ===== */
+const KEY='sml_uriage_nyukin_v1';
+const DEF_TERMS={close:'end',month:1,day:'end'}; // 末締め翌月末払い
+let db=load();
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.invoices)return Object.assign({clients:{},imports:[],deleted:{}},d);}catch(e){}
+  return {invoices:{},clients:{},imports:[],deleted:{}};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db,(k,v)=>k[0]==='_'?undefined:v));}catch(e){toast('保存できませんでした');}}
+
+/* ===== 便利関数 ===== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yen=n=>'¥'+Math.round(n||0).toLocaleString('ja-JP');
+const man=n=>{n=n||0;return n>=10000?(Math.round(n/1000)/10).toLocaleString('ja-JP')+'万':Math.round(n).toLocaleString('ja-JP')};
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>ymd(new Date());
+const md=s=>s?(+s.slice(5,7))+'/'+(+s.slice(8,10)):'';
+const lastDay=(y,m)=>new Date(y,m,0).getDate(); // m:1-12
+const cname=s=>String(s||'').replace(/^[\s　]+|[\s　]+$/g,'');
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ===== 入金予定日 ===== */
+function terms(client){const c=db.clients[client];return Object.assign({},DEF_TERMS,c&&c.terms||{});}
+function dueDate(inv){
+  if(inv.dueOverride)return inv.dueOverride;
+  if(!inv.date)return '';
+  const t=terms(inv.client);
+  let y=+inv.date.slice(0,4),m=+inv.date.slice(5,7);const d=+inv.date.slice(8,10);
+  if(t.close!=='end'&&d>+t.close){m++;}
+  m+=+t.month;
+  while(m>12){m-=12;y++;}
+  const dd=t.day==='end'?lastDay(y,m):Math.min(+t.day,lastDay(y,m));
+  return y+'-'+pad(m)+'-'+pad(dd);
+}
+function termsLabel(t){
+  const c=t.close==='end'?'末締め':t.close+'日締め';
+  const m=['当月','翌月','翌々月','3か月後'][+t.month]||t.month+'か月後';
+  const d=t.day==='end'?'末':t.day+'日';
+  return c+' '+m+d+'払い';
+}
+function daysBetween(a,b){return Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/864e5);}
+
+/* 状態 */
+function state(inv){
+  if(inv.status==='quote')return {k:'quote',label:'除外'};
+  if(inv.status==='paid'){
+    const diff=(inv.paidAmount??inv.amount)-inv.amount;
+    return {k:'paid',label:'入金済 '+md(inv.paidDate),diff};
+  }
+  const due=dueDate(inv),t=today();
+  if(due&&due<t)return {k:'due',label:daysBetween(due,t)+'日遅れ',due};
+  if(due&&daysBetween(t,due)<=7)return {k:'soon',label:'もうすぐ '+md(due),due};
+  return {k:'wait',label:'予定 '+md(due),due};
+}
+const isSale=inv=>inv.status!=='quote';
+const allInv=()=>Object.values(db.invoices);
+
+/* ===== CSV ===== */
+function parseCSV(text){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"')q=true;
+    else if(c===','){row.push(f);f='';}
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n')i++; row.push(f);rows.push(row);row=[];f=''; }
+    else f+=c;
+  }
+  if(f!==''||row.length){row.push(f);rows.push(row);}
+  return rows.filter(r=>r.some(x=>x!==''));
+}
+function decode(buf){
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(buf).replace(/^﻿/,'');}
+  catch(e){return new TextDecoder('shift_jis').decode(buf);}
+}
+function importCSV(text){
+  const rows=parseCSV(text);if(rows.length<2)throw new Error('データがありません');
+  const h=rows[0].map(s=>s.trim());
+  const ix=n=>h.indexOf(n);
+  const need=['請求番号','請求日','件名','請求先','金額'];
+  for(const n of need)if(ix(n)<0)throw new Error('「'+n+'」の列が見つかりません。Misocaの請求書CSV（CSV形式）を選んでください');
+  let add=0,upd=0,skip=0;
+  for(const r of rows.slice(1)){
+    const g=n=>ix(n)>=0?(r[ix(n)]??''):'';
+    const no=g('請求番号').trim();if(!no)continue;
+    const rec={no,date:g('請求日').trim().replace(/\//g,'-'),title:g('件名').trim(),client:cname(g('請求先')),
+      amount:+(g('金額').replace(/[^\d.-]/g,''))||0,memo:g('備考').trim(),inmemo:g('社内メモ').trim(),staff:cname(g('担当者'))};
+    if(db.deleted[no]){skip++;continue;}
+    const old=db.invoices[no];
+    if(old){ if(old.edited){old.memo=rec.memo;old.inmemo=rec.inmemo;old.staff=rec.staff;} else Object.assign(old,rec); upd++;}
+    else{
+      rec.status=/見積/.test(rec.title)?'quote':'unpaid';
+      if(g('入金済')==='入金済')rec.status='paid';
+      db.invoices[no]=rec;add++;
+    }
+    if(!db.clients[rec.client])db.clients[rec.client]={memo:''};
+  }
+  db.imports.push({at:new Date().toISOString(),add,upd,skip});
+  save();return {add,upd,skip};
+}
+
+/* ===== 年 ===== */
+let year=null;
+function years(){
+  const s=new Set(allInv().map(i=>i.date.slice(0,4)).filter(Boolean));s.add(String(new Date().getFullYear()));
+  return [...s].sort().reverse();
+}
+function fillYears(){
+  const ys=years();if(!year||!ys.includes(year))year=ys[0];
+  $('#yearSel').innerHTML=ys.map(y=>`<option ${y===year?'selected':''} value="${y}">${y}年</option>`).join('');
+}
+$('#yearSel').onchange=e=>{year=e.target.value;filt.month='';render();};
+
+/* ===== タブ ===== */
+let tab='home',selMode=false,sel=new Set(),filt={q:'',st:'all',client:'',pclient:'',month:''},clientOpen=null;
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;clientOpen=null;filt.month='';exitSel();render();scrollTo(0,0);});
+function render(){
+  fillYears();
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  const overdue=allInv().filter(i=>state(i).k==='due').length;
+  $('#unpaidBadge').dataset.n=overdue>99?'99+':overdue;
+  $('#yearSel').style.visibility=(tab==='home'||tab==='list'||tab==='clients'||tab==='paid')?'visible':'hidden';
+  const titles={home:'売上・入金',unpaid:'未入金',paid:'入金済',list:'すべての請求',clients:'取引先',settings:'データ'};
+  $('#ttl').textContent=clientOpen?clientOpen:titles[tab];
+  const m=$('#main');
+  if(!allInv().length&&tab!=='settings'){m.innerHTML=emptyStart();bindStart();return;}
+  if(tab==='home')m.innerHTML=homeView();
+  if(tab==='unpaid')m.innerHTML=unpaidView();
+  if(tab==='list')m.innerHTML=listView();
+  if(tab==='paid')m.innerHTML=paidView();
+  if(tab==='clients')m.innerHTML=clientOpen?clientDetail(clientOpen):clientsView();
+  if(tab==='settings')m.innerHTML=settingsView();
+  bind();
+}
+function emptyStart(){
+  return `<div class="card empty"><b>まずはMisocaのCSVを読み込みます</b><br>
+  Misoca → 請求書 → CSVダウンロード（CSV形式）<br>で保存したファイルを選んでください。<br>
+  <button class="btn block" data-act="csv">CSVを読み込む</button>
+  <button class="btn sub block" data-act="json">バックアップから戻す</button></div>`;
+}
+function bindStart(){document.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>act(b.dataset.act));}
+
+/* ===== ホーム ===== */
+function homeView(){
+  const inv=allInv().filter(isSale);
+  const yr=inv.filter(i=>i.date.startsWith(year));
+  const sum=a=>a.reduce((s,i)=>s+i.amount,0);
+  const paid=yr.filter(i=>i.status==='paid'),unpaid=yr.filter(i=>i.status!=='paid');
+  const allDue=inv.filter(i=>state(i).k==='due');
+  const nowM=today().slice(0,7);
+  const thisM=inv.filter(i=>i.date.startsWith(nowM));
+  // 今月入金予定
+  const comingM=inv.filter(i=>i.status!=='paid'&&dueDate(i).startsWith(nowM));
+  // 月別
+  const months=[];for(let m=1;m<=12;m++){const k=year+'-'+pad(m);const a=yr.filter(i=>i.date.startsWith(k));
+    months.push({m,n:a.length,p:sum(a.filter(i=>i.status==='paid')),u:sum(a.filter(i=>i.status!=='paid'))});}
+  const max=Math.max(1,...months.map(x=>x.p+x.u));
+  const bars=months.map(x=>{const h1=x.u/max*100,h2=x.p/max*100;
+    return `<div class="bar ${year+'-'+pad(x.m)===nowM?'sel':''}" title="${x.m}月 ${yen(x.p+x.u)}">
+      <div style="flex:1"></div>${x.u?`<div class="seg u" style="height:${h1}%"></div>`:''}${x.p?`<div class="seg p" style="height:${h2}%"></div>`:''}
+      <div class="m">${x.m}</div></div>`;}).join('');
+  return `
+  <div class="kpis">
+    <div class="kpi wide"><div class="l">${year}年の売上（見積除く）</div><div class="v">${yen(sum(yr))}</div><div class="s">${yr.length}件</div></div>
+    <div class="kpi"><div class="l">入金済</div><div class="v" style="color:var(--paid)">${man(sum(paid))}</div><div class="s">${paid.length}件</div></div>
+    <div class="kpi"><div class="l">未入金</div><div class="v">${man(sum(unpaid))}</div><div class="s">${unpaid.length}件</div></div>
+    <div class="kpi red wide" data-go="unpaid"><div class="l">期限を過ぎた未入金（全期間）</div><div class="v">${yen(sum(allDue))}</div><div class="s">${allDue.length}件 ・ タップで一覧へ</div></div>
+    <div class="kpi"><div class="l">今月の請求</div><div class="v">${man(sum(thisM))}</div><div class="s">${thisM.length}件</div></div>
+    <div class="kpi"><div class="l">今月入金予定</div><div class="v">${man(sum(comingM))}</div><div class="s">${comingM.length}件</div></div>
+  </div>
+  <div class="card"><h2>月別の売上（${year}年）</h2><div class="bars">${bars}</div>
+    <div class="legend"><span><i style="background:var(--ink)"></i>入金済</span><span><i style="background:#e3b3ac"></i>未入金</span></div></div>
+  <div class="card"><h2>月ごとの売上一覧（${year}年・請求日で集計）</h2>
+    <table class="mt"><thead><tr><th>月</th><th>件数</th><th>売上</th><th>未入金</th></tr></thead><tbody>
+    ${months.filter(x=>x.n).map(x=>`<tr data-month="${year}-${pad(x.m)}"><td>${x.m}月</td><td>${x.n}</td><td>${yen(x.p+x.u)}</td><td class="${x.u?'un':''}">${x.u?yen(x.u):'－'}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">まだありません</td></tr>'}
+    </tbody><tfoot><tr><td>合計</td><td>${yr.length}</td><td>${yen(sum(yr))}</td><td>${sum(unpaid)?yen(sum(unpaid)):'－'}</td></tr></tfoot></table>
+    <p class="muted" style="margin:8px 0 0">月をタップすると、その月の請求が一覧で見られます。</p></div>
+  `;
+}
+
+/* ===== 行 ===== */
+function rowHTML(i){
+  const s=state(i);
+  const selc=selMode?`<div class="chk ${sel.has(i.no)?'on':''}"></div>`:'';
+  return `<div class="row" data-no="${esc(i.no)}">${selc}
+    <div class="main"><div class="t">${esc(i.client)}</div><div class="d">${md(i.date)} ${esc(i.title)}</div></div>
+    <div class="amt">${yen(i.amount)}<small><span class="tag ${s.k}">${esc(s.label)}</span></small></div></div>`;
+}
+
+/* ===== 未入金 ===== */
+function unpaidView(){
+  let a=allInv().filter(i=>isSale(i)&&i.status!=='paid');
+  if(filt.client)a=a.filter(i=>i.client===filt.client);
+  a.sort((x,y)=>dueDate(x).localeCompare(dueDate(y))||x.date.localeCompare(y.date));
+  const total=a.reduce((s,i)=>s+i.amount,0),due=a.filter(i=>state(i).k==='due');
+  const clients=[...new Set(allInv().filter(i=>isSale(i)&&i.status!=='paid').map(i=>i.client))].sort();
+  return `<div class="kpis"><div class="kpi"><div class="l">未入金 合計</div><div class="v">${man(total)}</div><div class="s">${a.length}件</div></div>
+    <div class="kpi red"><div class="l">うち期限切れ</div><div class="v">${man(due.reduce((s,i)=>s+i.amount,0))}</div><div class="s">${due.length}件</div></div></div>
+  <div class="toolbar"><select id="fClient" style="flex:1"><option value="">すべての取引先</option>${clients.map(c=>`<option ${c===filt.client?'selected':''}>${esc(c)}</option>`).join('')}</select>
+    <button class="btn sm ${selMode?'':'sub'}" id="selToggle">${selMode?'選択中':'まとめて選ぶ'}</button></div>
+  ${a.length?unpaidGroups(a):'<div class="card empty">未入金はありません 🎉</div>'}
+  <p class="muted">入金予定日は取引先ごとの支払条件（初期設定：末締め翌月末払い）から計算しています。</p>`;
+}
+
+function unpaidGroups(a){
+  const t=today(),g=[],idx={};
+  a.forEach(i=>{const d=dueDate(i);const k=d<t?'late':d.slice(0,7);
+    if(!(k in idx)){idx[k]=g.length;g.push({k,items:[]});}g[idx[k]].items.push(i);});
+  g.sort((x,y)=>x.k==='late'?-1:y.k==='late'?1:x.k.localeCompare(y.k));
+  return g.map(x=>{const s=x.items.reduce((n,i)=>n+i.amount,0);
+    const label=x.k==='late'?'<span style="color:var(--due)">期限切れ（入金遅れ）</span>':
+      (x.k===t.slice(0,7)?'今月':(+x.k.slice(0,4)!==+t.slice(0,4)?x.k.slice(0,4)+'年':''))+(+x.k.slice(5))+'月の入金予定';
+    return `<div class="grp"><span>${label}</span><span>${yen(s)}（${x.items.length}件）</span></div><div class="card" style="padding:4px 12px">${x.items.map(rowHTML).join('')}</div>`;}).join('');
+}
+
+/* ===== 一覧 ===== */
+function listView(){
+  let a=allInv().filter(i=>i.date.startsWith(filt.month||year));
+  const q=filt.q.trim().toLowerCase();
+  if(q)a=a.filter(i=>(i.client+' '+i.title+' '+i.no+' '+i.staff).toLowerCase().includes(q));
+  if(filt.st!=='all')a=a.filter(i=>filt.st==='unpaid'?(i.status==='unpaid'):i.status===filt.st);
+  a.sort((x,y)=>y.date.localeCompare(x.date)||y.no.localeCompare(x.no));
+  const g={};a.forEach(i=>{(g[i.date.slice(0,7)]=g[i.date.slice(0,7)]||[]).push(i);});
+  const html=Object.keys(g).map(k=>{const s=g[k].filter(isSale).reduce((t,i)=>t+i.amount,0);
+    return `<div class="grp"><span>${+k.slice(5)}月</span><span>${yen(s)}</span></div><div class="card" style="padding:4px 12px">${g[k].map(rowHTML).join('')}</div>`;}).join('');
+  return `${filt.month?`<button class="chip" id="clrMonth">${+filt.month.slice(5)}月だけ表示中 ✕</button>`:''}<div class="toolbar"><input type="search" id="fq" placeholder="取引先・件名で検索" value="${esc(filt.q)}">
+    <select id="fst"><option value="all">すべて</option><option value="unpaid" ${filt.st==='unpaid'?'selected':''}>未入金</option>
+    <option value="paid" ${filt.st==='paid'?'selected':''}>入金済</option><option value="quote" ${filt.st==='quote'?'selected':''}>除外</option></select></div>
+    <div class="toolbar"><button class="btn sm" id="addInv">＋ 請求を追加</button><button class="btn sm ${selMode?'':'sub'}" id="selToggle">${selMode?'選択中':'まとめて選ぶ'}</button></div>
+    ${html||'<div class="card empty">該当する請求はありません</div>'}`;
+}
+
+/* ===== 入金済 ===== */
+function paidView(){
+  let a=allInv().filter(i=>i.status==='paid'&&(i.paidDate||'').startsWith(year));
+  const clients=[...new Set(a.map(i=>i.client))].sort();
+  if(filt.pclient)a=a.filter(i=>i.client===filt.pclient);
+  a.sort((x,y)=>(y.paidDate||'').localeCompare(x.paidDate||'')||y.date.localeCompare(x.date));
+  const total=a.reduce((s,i)=>s+(i.paidAmount??i.amount),0);
+  const g={};a.forEach(i=>{const k=(i.paidDate||'').slice(0,7);(g[k]=g[k]||[]).push(i);});
+  const html=Object.keys(g).map(k=>{const s=g[k].reduce((t,i)=>t+(i.paidAmount??i.amount),0);
+    return `<div class="grp"><span>${+k.slice(5)}月の入金</span><span>${yen(s)}</span></div><div class="card" style="padding:4px 12px">${g[k].map(rowHTML).join('')}</div>`;}).join('');
+  return `<div class="kpis"><div class="kpi wide"><div class="l">${year}年に入金された金額</div><div class="v" style="color:var(--paid)">${yen(total)}</div><div class="s">${a.length}件（入金日で集計）</div></div></div>
+  <div class="toolbar"><select id="fPClient" style="flex:1"><option value="">すべての取引先</option>${clients.map(c=>`<option ${c===filt.pclient?'selected':''}>${esc(c)}</option>`).join('')}</select>
+    <button class="btn sm ${selMode?'':'sub'}" id="selToggle">${selMode?'選択中':'まとめて選ぶ'}</button></div>
+  ${html||'<div class="card empty">この年の入金済はまだありません</div>'}`;
+}
+
+/* ===== 取引先 ===== */
+function clientsView(){
+  const map={};
+  allInv().filter(isSale).forEach(i=>{const c=map[i.client]=map[i.client]||{n:0,yr:0,un:0,due:0};
+    if(i.date.startsWith(year)){c.yr+=i.amount;c.n++;}
+    if(i.status!=='paid'){c.un+=i.amount;if(state(i).k==='due')c.due++;}});
+  const list=Object.keys(map).sort((a,b)=>map[b].yr-map[a].yr||a.localeCompare(b));
+  return `<p class="muted" style="margin:2px 4px 10px">取引先をタップすると、支払条件や連絡先メモを登録できます。</p>
+  <div class="card">${list.map(c=>{const x=map[c],cl=db.clients[c]||{};
+    return `<div class="row" data-client="${esc(c)}"><div class="main"><div class="t">${esc(c)}</div>
+      <div class="d">${termsLabel(terms(c))}${cl.memo?' ・ メモあり':''}</div></div>
+      <div class="amt">${yen(x.yr)}<small>${x.due?`<span class="tag due">遅れ${x.due}件</span>`:x.un?`<span class="tag wait">未入金 ${man(x.un)}</span>`:`<span class="tag paid">完了</span>`}</small></div></div>`;}).join('')}</div>`;
+}
+function clientDetail(c){
+  const cl=db.clients[c]=db.clients[c]||{memo:''};const t=terms(c);
+  const inv=allInv().filter(i=>i.client===c).sort((a,b)=>b.date.localeCompare(a.date));
+  const sale=inv.filter(isSale),un=sale.filter(i=>i.status!=='paid');
+  const staffs=[...new Set(inv.map(i=>i.staff).filter(Boolean))];
+  const opt=(arr,v)=>arr.map(([k,l])=>`<option value="${k}" ${String(v)===String(k)?'selected':''}>${l}</option>`).join('');
+  const days=[['end','末'],...[5,10,15,20,25].map(d=>[d,d+'日'])];
+  return `<button class="btn sub sm" id="back">← 取引先一覧</button>
+  <div class="kpis" style="margin-top:10px"><div class="kpi"><div class="l">${year}年の売上</div><div class="v">${man(sale.filter(i=>i.date.startsWith(year)).reduce((s,i)=>s+i.amount,0))}</div></div>
+  <div class="kpi ${un.some(i=>state(i).k==='due')?'red':''}"><div class="l">未入金</div><div class="v">${man(un.reduce((s,i)=>s+i.amount,0))}</div><div class="s">${un.length}件</div></div></div>
+  <div class="card"><h2>支払条件</h2>
+    <div class="inline"><select id="tClose">${opt(days,t.close)}</select><span style="flex:none">締め</span>
+    <select id="tMonth">${opt([[0,'当月'],[1,'翌月'],[2,'翌々月'],[3,'3か月後']],t.month)}</select>
+    <select id="tDay">${opt(days,t.day)}</select><span style="flex:none">払い</span></div>
+    <p class="muted" style="margin:8px 0 0">変更すると、この取引先の入金予定日がすべて計算し直されます。</p>
+    <div class="field"><label>メモ（担当者・振込名義・連絡先など）</label><textarea id="cMemo" placeholder="例）振込名義はカ）〇〇 ／ 経理 〇〇さん 06-xxxx">${esc(cl.memo)}</textarea></div>
+    ${staffs.length?`<p class="muted">Misocaの担当者：${esc(staffs.join('、'))}</p>`:''}
+  </div>
+  <div class="toolbar"><button class="btn sm ${selMode?'':'sub'}" id="selToggle">${selMode?'選択中':'まとめて選ぶ'}</button></div>
+  <div class="card">${inv.map(rowHTML).join('')}</div>`;
+}
+
+/* ===== データ ===== */
+function settingsView(){
+  const n=allInv().length,last=db.imports[db.imports.length-1];
+  return `<div class="card"><h2>Misocaから取り込む</h2>
+    <p class="muted" style="margin-top:0">Misoca → 請求書 → CSVダウンロード（CSV形式）で保存したファイルを選びます。同じ請求番号は上書きされ、入金済などの記録はそのまま残ります。アプリで編集した請求と削除した請求は、取り込み直しても元に戻りません。</p>
+    <button class="btn block" data-act="csv">CSVを読み込む</button>
+    <p class="muted">登録件数：${n}件${last?` ／ 前回の取込：${new Date(last.at).toLocaleDateString('ja-JP')}（新規${last.add}・更新${last.upd}）`:''}</p></div>
+  <div class="card"><h2>最初の整理（まとめて入金済にする）</h2>
+    <p class="muted" style="margin-top:0">通帳で入金を確認できた分まで、まとめて「入金済」にできます。指定した請求日までの未入金がすべて対象です（除外は対象外）。</p>
+    <div class="inline"><input type="date" id="bulkDate"><button class="btn green" style="flex:none" data-act="bulk">入金済にする</button></div></div>
+  <div class="card"><h2>バックアップ</h2>
+    <p class="muted" style="margin-top:0">データはこのスマホの中に保存されています。機種変更やiPadで使うときのために、ときどき保存してください（OneDriveに置いておくと安心です）。</p>
+    <button class="btn sub block" data-act="export">バックアップを保存</button>
+    <button class="btn sub block" data-act="json">バックアップから戻す</button></div>
+  <div class="card"><h2>リセット</h2><button class="btn red block" data-act="reset">すべてのデータを消す</button></div>`;
+}
+
+/* ===== 操作 ===== */
+function bind(){
+  document.querySelectorAll('[data-no]').forEach(r=>r.onclick=()=>{
+    const no=r.dataset.no;
+    if(selMode){sel.has(no)?sel.delete(no):sel.add(no);r.querySelector('.chk').classList.toggle('on');updSel();return;}
+    openInv(no);});
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{tab=b.dataset.go;render();scrollTo(0,0);});
+  document.querySelectorAll('[data-client]').forEach(r=>r.onclick=()=>{clientOpen=r.dataset.client;render();scrollTo(0,0);});
+  document.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>act(b.dataset.act));
+  const fq=$('#fq');if(fq)fq.oninput=e=>{filt.q=e.target.value;const p=fq.selectionStart;render();const n=$('#fq');n.focus();n.setSelectionRange(p,p);};
+  const fst=$('#fst');if(fst)fst.onchange=e=>{filt.st=e.target.value;render();};
+  const fc=$('#fClient');if(fc)fc.onchange=e=>{filt.client=e.target.value;render();};
+  const fp=$('#fPClient');if(fp)fp.onchange=e=>{filt.pclient=e.target.value;render();};
+  const ad=$('#addInv');if(ad)ad.onclick=()=>openInv(null);
+  document.querySelectorAll('[data-month]').forEach(r=>r.onclick=()=>{filt.month=r.dataset.month;tab='list';render();scrollTo(0,0);});
+  const cm=$('#clrMonth');if(cm)cm.onclick=()=>{filt.month='';render();};
+  const st=$('#selToggle');if(st)st.onclick=()=>{selMode?exitSel():(selMode=true,updSel());render();};
+  const bk=$('#back');if(bk)bk.onclick=()=>{clientOpen=null;exitSel();render();scrollTo(0,0);};
+  if(clientOpen){
+    const c=clientOpen;const setT=()=>{db.clients[c].terms={close:$('#tClose').value,month:+$('#tMonth').value,day:$('#tDay').value};save();render();toast('支払条件を保存しました');};
+    $('#tClose').onchange=setT;$('#tMonth').onchange=setT;$('#tDay').onchange=setT;
+    $('#cMemo').onchange=e=>{db.clients[c].memo=e.target.value;save();toast('メモを保存しました');};
+  }
+  const bd=$('#bulkDate');if(bd&&!bd.value){const d=new Date();d.setMonth(d.getMonth()-2);d.setDate(0);bd.value=ymd(d);}
+}
+function updSel(){$('#selbar').classList.toggle('show',selMode);
+  $('#selPay').textContent=tab==='paid'?'未入金に戻す':'入金済に';$('#selPay').className='btn sm '+(tab==='paid'?'sub':'green');
+  const a=[...sel].map(n=>db.invoices[n]);$('#selInfo').textContent=sel.size+'件 '+yen(a.reduce((s,i)=>s+i.amount,0));}
+function exitSel(){selMode=false;sel.clear();$('#selbar').classList.remove('show');}
+$('#selCancel').onclick=()=>{exitSel();render();};
+$('#selMore').onclick=()=>{
+  if(!sel.size)return toast('先に請求を選んでください');
+  openSheet(`<h3>選んだ${sel.size}件をどうしますか？</h3>
+    <button class="btn sub block" id="mUnpaid">未入金にする</button>
+    <button class="btn sub block" id="mEx">除外にする（見積・メモ・請求しない分）</button>
+    <button class="btn red block" id="mDel">削除する</button>
+    <button class="btn sub block" id="mCancel">やめる</button>`);
+  const fin=m=>{save();closeSheet();toast(m);exitSel();render();};
+  $('#mUnpaid').onclick=()=>{sel.forEach(n=>{const i=db.invoices[n];i.status='unpaid';delete i.paidDate;delete i.paidAmount;});fin(sel.size+'件を未入金にしました');};
+  $('#mEx').onclick=()=>{sel.forEach(n=>{const i=db.invoices[n];i.status='quote';delete i.paidDate;delete i.paidAmount;});fin(sel.size+'件を除外にしました');};
+  $('#mDel').onclick=()=>{if(!confirm(sel.size+'件を削除します。Misocaから取り込み直しても戻りません。よろしいですか？'))return;
+    const n=sel.size;sel.forEach(no=>delInv(no));fin(n+'件を削除しました');};
+  $('#mCancel').onclick=closeSheet;
+};
+function delInv(no){const i=db.invoices[no];if(!i)return;if(!i.manual)db.deleted[no]=true;delete db.invoices[no];}
+$('#selPay').onclick=()=>{
+  if(!sel.size)return;
+  if(tab==='paid'){sel.forEach(n=>{const i=db.invoices[n];i.status='unpaid';delete i.paidDate;delete i.paidAmount;});save();toast(sel.size+'件を未入金に戻しました');exitSel();render();return;}
+  const d=prompt('入金日（例 '+today()+'）',today());if(d===null)return;
+  sel.forEach(n=>{const i=db.invoices[n];i.status='paid';i.paidDate=d||today();i.paidAmount=i.amount;});
+  save();toast(sel.size+'件を入金済にしました');exitSel();render();
+};
+
+function act(a){
+  if(a==='csv')$('#csvFile').click();
+  if(a==='json')$('#jsonFile').click();
+  if(a==='export'){
+    const blob=new Blob([JSON.stringify(db,(k,v)=>k[0]==='_'?undefined:v,1)],{type:'application/json'});
+    const name='売上入金_'+today()+'.json';
+    const file=new File([blob],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file]}).catch(()=>{});}
+    else{const u=URL.createObjectURL(blob);const l=document.createElement('a');l.href=u;l.download=name;l.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+  }
+  if(a==='bulk'){
+    const d=$('#bulkDate').value;if(!d)return toast('日付を選んでください');
+    const t=allInv().filter(i=>i.status==='unpaid'&&i.date<=d);
+    if(!t.length)return toast('対象の未入金はありません');
+    if(!confirm(md(d)+'（'+d.slice(0,4)+'年）までの請求 '+t.length+'件・'+yen(t.reduce((s,i)=>s+i.amount,0))+'を入金済にします。よろしいですか？'))return;
+    t.forEach(i=>{i.status='paid';i.paidDate=dueDate(i);i.paidAmount=i.amount;i.bulk=true;});
+    save();toast(t.length+'件を入金済にしました');render();
+  }
+  if(a==='reset'){if(confirm('すべてのデータを消します。先にバックアップを保存しましたか？')&&confirm('本当に消しますか？')){db={invoices:{},clients:{},imports:[],deleted:{}};save();render();}}
+}
+$('#csvFile').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const r=importCSV(decode(await f.arrayBuffer()));toast('取込完了：新規'+r.add+'件・更新'+r.upd+'件'+(r.skip?'（削除済み'+r.skip+'件は読み込みませんでした）':''));tab=tab==='settings'?'home':tab;year=null;render();}
+  catch(err){alert(err.message);}
+};
+$('#jsonFile').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!d.invoices)throw 0;
+    if(allInv().length&&!confirm('今のデータをバックアップの内容に置き換えます。よろしいですか？'))return;
+    db=Object.assign({clients:{},imports:[],deleted:{}},d);save();year=null;toast('戻しました');render();}
+  catch(err){alert('バックアップファイルを読み込めませんでした');}
+};
+
+/* ===== 請求の詳細シート ===== */
+function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheetBg').style.display='block';requestAnimationFrame(()=>$('#sheet').classList.add('open'));}
+function closeSheet(){$('#sheet').classList.remove('open');setTimeout(()=>$('#sheetBg').style.display='none',220);}
+$('#sheetBg').onclick=closeSheet;
+function openInv(no){
+  const isNew=!no;
+  const i=isNew?{no:'',date:today(),title:'',client:'',amount:0,status:'unpaid',manual:true}:db.invoices[no];
+  if(!i)return;
+  ['_c','_t','_d','_a','_open','_n'].forEach(k=>delete i[k]);
+  let st=i.status;
+  const cl=Object.keys(db.clients).sort();
+  const draw=()=>{
+    const due=i.date?dueDate(i):'';
+    const pa=i.paidAmount??(+i._a||i.amount);
+    openSheet(`${isNew?'<h3>請求を追加</h3>':`<h3>${esc(i.client)}</h3><div class="muted">${esc(i.title)}</div>
+    <div class="kv"><dt>請求番号</dt><dd>${esc(i.manual?'（手入力）':i.no)}${i.edited&&!i.manual?' <span class="tag quote">編集済</span>':''}</dd><dt>請求日</dt><dd>${esc(i.date)}</dd>
+      <dt>金額</dt><dd><b>${yen(i.amount)}</b></dd><dt>入金予定</dt><dd>${esc(due)}　<span class="muted">${termsLabel(terms(i.client))}${i.dueOverride?'（個別に変更）':''}</span></dd>
+      ${i.staff?`<dt>担当者</dt><dd>${esc(i.staff)}</dd>`:''}</div>`}
+    <details class="field" ${isNew?'open':''} id="edBox"><summary class="muted" style="padding:4px 0">${isNew?'内容':'内容を編集する'}</summary>
+      <div class="field"><label>請求先</label><input type="text" id="eClient" list="clList" value="${esc(i.client)}" placeholder="取引先名"></div>
+      <datalist id="clList">${cl.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      <div class="field"><label>件名</label><input type="text" id="eTitle" value="${esc(i.title)}"></div>
+      <div class="field inline"><div><label>請求日</label><input type="date" id="eDate" value="${esc(i.date)}"></div>
+        <div><label>金額（税込）</label><input type="number" inputmode="numeric" id="eAmt" value="${i.amount||''}"></div></div>
+    </details>
+    <div class="field"><div class="seg3" id="stSeg">
+      <button data-s="unpaid" class="${st==='unpaid'?'on':''}">未入金</button>
+      <button data-s="paid" class="paid ${st==='paid'?'on':''}">入金済</button>
+      <button data-s="quote" class="quote ${st==='quote'?'on':''}">除外</button></div></div>
+    ${st==='paid'?`<div class="field inline"><div><label>入金日</label><input type="date" id="pDate" value="${esc(i.paidDate||today())}"></div>
+      <div><label>入金額</label><input type="number" inputmode="numeric" id="pAmt" value="${pa}"></div></div>
+      <p id="pDiff" class="muted"></p>`:''}
+    ${st==='unpaid'?`<div class="field"><label>入金予定日を個別に変える（空欄で自動）</label><input type="date" id="dOv" value="${esc(i.dueOverride||'')}"></div>`:''}
+    ${st==='quote'?`<p class="muted">見積・メモ・請求していない分など。売上や未入金の合計には入りません。</p>`:''}
+    <div class="field"><label>メモ</label><textarea id="iNote" placeholder="例）振込手数料引き、〇月分と合算で入金 など">${esc(i.note||'')}</textarea></div>
+    ${i.memo?`<div class="note">${esc(i.memo)}</div>`:''}
+    <button class="btn block" id="svInv">${isNew?'追加':'保存'}</button>
+    ${isNew?'':'<button class="btn red block" id="dlInv">この請求を削除</button>'}`);
+    // 編集中の値を状態切替で失わないように
+    const keep=()=>{const g=id=>$(id)?$(id).value:null;
+      if(g('#eClient')!==null){i._c=g('#eClient');i._t=g('#eTitle');i._d=g('#eDate');i._a=g('#eAmt');i._open=$('#edBox').open;}
+      i._n=g('#iNote');};
+    if(i._c!==undefined){$('#eClient').value=i._c;$('#eTitle').value=i._t;$('#eDate').value=i._d;$('#eAmt').value=i._a;$('#edBox').open=i._open||isNew;}
+    if(i._n!=null)$('#iNote').value=i._n;
+    document.querySelectorAll('#stSeg button').forEach(b=>b.onclick=()=>{keep();st=b.dataset.s;draw();});
+    const pAmt=$('#pAmt');
+    const amt=()=>+($('#eAmt').value)||0;
+    const diff=()=>{const v=+pAmt.value||0,d=v-amt();$('#pDiff').innerHTML=d?`<span class="diff">差額 ${d>0?'+':''}${d.toLocaleString('ja-JP')}円</span>（振込手数料などはメモに残しておくと分かりやすいです）`:'';};
+    if(pAmt){pAmt.oninput=diff;diff();}
+    const clean=()=>{delete i._c;delete i._t;delete i._d;delete i._a;delete i._open;delete i._n;};
+    $('#svInv').onclick=()=>{
+      const c=cname($('#eClient').value),t=$('#eTitle').value.trim(),d=$('#eDate').value,a=amt();
+      if(!c)return toast('請求先を入れてください');
+      if(!d)return toast('請求日を入れてください');
+      if(!a)return toast('金額を入れてください');
+      if(c!==i.client||t!==i.title||d!==i.date||a!==i.amount){
+        if(!isNew&&a!==i.amount&&st==='paid'&&(i.paidAmount??i.amount)===i.amount)i.paidAmount=a;
+        i.client=c;i.title=t;i.date=d;i.amount=a;i.edited=true;}
+      if(!db.clients[c])db.clients[c]={memo:''};
+      i.status=st;i.note=$('#iNote').value;
+      if(st==='paid'){i.paidDate=$('#pDate').value||today();i.paidAmount=+$('#pAmt').value||a;}
+      else{delete i.paidDate;delete i.paidAmount;}
+      const ov=$('#dOv');if(ov){if(ov.value)i.dueOverride=ov.value;else delete i.dueOverride;}
+      clean();
+      if(isNew){i.no='M'+Date.now();db.invoices[i.no]=i;}
+      save();closeSheet();render();toast(isNew?'追加しました':'保存しました');
+    };
+    const dl=$('#dlInv');if(dl)dl.onclick=()=>{
+      if(!confirm('「'+i.client+' '+yen(i.amount)+'」を削除します。Misocaから取り込み直しても戻りません。よろしいですか？'))return;
+      clean();delInv(i.no);save();closeSheet();render();toast('削除しました');
+    };
+  };
+  draw();
+}
+
+
+render();
+</script>
+</body>
+</html>
