@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="売上・入金">
 <meta name="theme-color" content="#1d1d1f">
 <title>売上・入金 | SML</title>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
 <style>
 :root{
   --bg:#f4f4f2; --card:#fff; --ink:#1d1d1f; --sub:#6e6e73; --line:#e3e3e0;
@@ -19,6 +20,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);
 header{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;
   padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px}
 header h1{font-size:17px;margin:0;flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .sync{flex:none;background:none;border:0;color:#bbb;font-size:11px;padding:4px 2px;font-family:inherit}
 header select{width:auto;flex:none;background:#333;color:#fff;border:0;border-radius:8px;padding:6px 8px;font-size:15px}
 main{padding:12px 12px calc(84px + env(safe-area-inset-bottom))}
 nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:#fff;border-top:1px solid var(--line);
@@ -118,6 +120,7 @@ textarea{min-height:80px;resize:vertical}
 <body>
 <header>
   <h1 id="ttl">売上・入金</h1>
+  <button id="syncBtn" class="sync" hidden></button>
   <select id="yearSel" aria-label="年"></select>
 </header>
 <main id="main"></main>
@@ -153,7 +156,16 @@ function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.invoices)return Object.assign({clients:{},imports:[],deleted:{}},d);}catch(e){}
   return {invoices:{},clients:{},imports:[],deleted:{}};
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db,(k,v)=>k[0]==='_'?undefined:v));}catch(e){toast('保存できませんでした');}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(db,(k,v)=>k[0]==='_'?undefined:v));}catch(e){toast('保存できませんでした');}}
+/* 変更したものだけに更新時刻(t)を付ける：同期で新しい方を残すため */
+let snap={};
+const snapKey=o=>JSON.stringify(o,(k,v)=>k==='t'||k[0]==='_'?undefined:v);
+function initSnap(){snap={};for(const n in db.invoices)snap['i'+n]=snapKey(db.invoices[n]);for(const c in db.clients)snap['c'+c]=snapKey(db.clients[c]);}
+function stamp(){const now=Date.now();
+  for(const n in db.invoices){const k='i'+n,v=snapKey(db.invoices[n]);if(snap[k]!==v){db.invoices[n].t=now;snap[k]=v;}}
+  for(const c in db.clients){const k='c'+c,v=snapKey(db.clients[c]);if(snap[k]!==v){db.clients[c].t=now;snap[k]=v;}}}
+function save(){stamp();persist();Sync.later();}
+initSnap();
 
 /* ===== 便利関数 ===== */
 const $=s=>document.querySelector(s);
@@ -285,7 +297,9 @@ function emptyStart(){
   return `<div class="card empty"><b>まずはMisocaのCSVを読み込みます</b><br>
   Misoca → 請求書 → CSVダウンロード（CSV形式）<br>で保存したファイルを選んでください。<br>
   <button class="btn block" data-act="csv">CSVを読み込む</button>
-  <button class="btn sub block" data-act="json">バックアップから戻す</button></div>`;
+  <button class="btn sub block" data-act="json">バックアップから戻す</button>
+  <p class="muted" style="margin-top:16px">iPadなど2台目で使うときは、こちらから</p>
+  <button class="btn sub block" data-act="login">${Sync.account()?'OneDriveから読み込む':'Microsoftでログインして読み込む'}</button></div>`;
 }
 function bindStart(){document.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>act(b.dataset.act));}
 
@@ -440,6 +454,13 @@ function settingsView(){
   <div class="card"><h2>最初の整理（まとめて入金済にする）</h2>
     <p class="muted" style="margin-top:0">通帳で入金を確認できた分まで、まとめて「入金済」にできます。指定した請求日までの未入金がすべて対象です（除外は対象外）。</p>
     <div class="inline"><input type="date" id="bulkDate"><button class="btn green" style="flex:none" data-act="bulk">入金済にする</button></div></div>
+  <div class="card"><h2>iPhone・iPadで同期（OneDrive）</h2>
+    ${Sync.account()?`<p class="muted" style="margin-top:0">ログイン中：${esc(Sync.account().username||'')}<br>変更すると自動でOneDriveに保存され、ほかの端末で開いたときに新しい内容が読み込まれます。</p>
+    <p class="muted">状態：<span id="syncState">${esc(Sync.state)}</span></p>
+    <button class="btn block" data-act="syncnow">今すぐ同期</button>`:
+    `<p class="muted" style="margin-top:0">ホテル計算アプリと同じMicrosoftアカウントでログインすると、iPhoneとiPadで同じデータを見られます。ログインしなくても、このスマホの中だけで使えます。</p>
+    <button class="btn block" data-act="login">Microsoftでログイン</button>`}
+    ${Sync.err?`<p class="muted" style="color:var(--due)">${esc(Sync.err)}</p>`:''}</div>
   <div class="card"><h2>バックアップ</h2>
     <p class="muted" style="margin-top:0">データはこのスマホの中に保存されています。機種変更やiPadで使うときのために、ときどき保存してください（OneDriveに置いておくと安心です）。</p>
     <button class="btn sub block" data-act="export">バックアップを保存</button>
@@ -491,7 +512,7 @@ $('#selMore').onclick=()=>{
     const n=sel.size;sel.forEach(no=>delInv(no));fin(n+'件を削除しました');};
   $('#mCancel').onclick=closeSheet;
 };
-function delInv(no){const i=db.invoices[no];if(!i)return;if(!i.manual)db.deleted[no]=true;delete db.invoices[no];}
+function delInv(no){const i=db.invoices[no];if(!i)return;db.deleted[no]=Date.now();delete db.invoices[no];}
 $('#selPay').onclick=()=>{
   if(!sel.size)return;
   if(tab==='paid'){sel.forEach(n=>{const i=db.invoices[n];i.status='unpaid';delete i.paidDate;delete i.paidAmount;});save();toast(sel.size+'件を未入金に戻しました');exitSel();render();return;}
@@ -503,6 +524,8 @@ $('#selPay').onclick=()=>{
 function act(a){
   if(a==='csv')$('#csvFile').click();
   if(a==='json')$('#jsonFile').click();
+  if(a==='login'){if(Sync.account())Sync.pull(true);else Sync.login();}
+  if(a==='syncnow')Sync.pull(true,true);
   if(a==='export'){
     const blob=new Blob([JSON.stringify(db,(k,v)=>k[0]==='_'?undefined:v,1)],{type:'application/json'});
     const name='売上入金_'+today()+'.json';
@@ -518,7 +541,7 @@ function act(a){
     t.forEach(i=>{i.status='paid';i.paidDate=dueDate(i);i.paidAmount=i.amount;i.bulk=true;});
     save();toast(t.length+'件を入金済にしました');render();
   }
-  if(a==='reset'){if(confirm('すべてのデータを消します。先にバックアップを保存しましたか？')&&confirm('本当に消しますか？')){db={invoices:{},clients:{},imports:[],deleted:{}};save();render();}}
+  if(a==='reset'){if(confirm('すべてのデータを消します。先にバックアップを保存しましたか？')&&confirm('本当に消しますか？')){db={invoices:{},clients:{},imports:[],deleted:{}};initSnap();persist();render();toast('この端末のデータを消しました');}}
 }
 $('#csvFile').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -609,7 +632,79 @@ function openInv(no){
 }
 
 
+
+/* ===== OneDrive同期（ホテル計算アプリと同じ設定） ===== */
+const Sync=(()=>{
+  const CLIENT_ID='7806d507-6cf4-49ad-b426-30b64e18879c',SC=['Files.ReadWrite.AppFolder'];
+  const URL_F='https://graph.microsoft.com/v1.0/me/drive/special/approot:/uriage.json:/content';
+  let pca=null,timer=null,busy=false,again=false,ready=false;
+  const S={state:'',err:''};
+  const show=m=>{S.state=m;const b=$('#syncBtn');if(b){b.hidden=!S.account();b.textContent='☁ '+m;}const e=$('#syncState');if(e)e.textContent=m;};
+  S.account=()=>{try{return pca&&(pca.getActiveAccount()||pca.getAllAccounts()[0])||null}catch(e){return null}};
+  async function token(){
+    const acc=S.account();
+    try{return (await pca.acquireTokenSilent({scopes:SC,account:acc})).accessToken;}
+    catch(e){pca.acquireTokenRedirect({scopes:SC});return new Promise(()=>{});}
+  }
+  async function gr(method,body){
+    const t=await token();const h={Authorization:'Bearer '+t};if(body)h['Content-Type']='application/json';
+    return fetch(URL_F,{method,headers:h,body});
+  }
+  async function getRemote(){const r=await gr('GET');if(r.status===404)return null;if(!r.ok)throw new Error('読込 '+r.status);return r.json();}
+  function merge(a,b){
+    if(!b||!b.invoices)return a;
+    const o={invoices:{},clients:{},deleted:{},imports:(a.imports||[]).length>=(b.imports||[]).length?a.imports||[]:b.imports};
+    const del=Object.assign({},b.deleted||{});for(const k in (a.deleted||{}))del[k]=Math.max(+del[k]||0,+a.deleted[k]||0);
+    o.deleted=del;
+    const keys=new Set([...Object.keys(a.invoices||{}),...Object.keys(b.invoices||{})]);
+    keys.forEach(k=>{const x=a.invoices[k],y=b.invoices[k];const w=!x?y:!y?x:((y.t||0)>(x.t||0)?y:x);
+      if(del[k]&&del[k]>=(w.t||0))return;o.invoices[k]=w;});
+    const ck=new Set([...Object.keys(a.clients||{}),...Object.keys(b.clients||{})]);
+    ck.forEach(k=>{const x=(a.clients||{})[k],y=(b.clients||{})[k];o.clients[k]=!x?y:!y?x:((y.t||0)>(x.t||0)?y:x);});
+    return o;
+  }
+  function apply(m){const before=JSON.stringify(db);db=m;initSnap();persist();if(JSON.stringify(db)!==before){render();return true;}return false;}
+  // 読み込み（ほかの端末の変更を取り込む）。push=trueなら続けて保存も
+  S.pull=async(force,push)=>{
+    if(!ready||!S.account())return;
+    if(busy){again=true;return;}
+    busy=true;if(force)show('同期中…');
+    try{const r=await getRemote();const changed=apply(merge(db,r));
+      if(push||!r){await put();}
+      S.err='';show('同期済み');if(force)toast(changed?'新しい内容を読み込みました':'最新の状態です');}
+    catch(e){S.err='';show('オフライン');}
+    busy=false;if(again){again=false;S.later();}
+  };
+  async function put(){const r=await gr('PUT',JSON.stringify(db,(k,v)=>k[0]==='_'?undefined:v));if(!r.ok)throw new Error('保存 '+r.status);}
+  // 変更後の保存（少し待ってからまとめて）
+  S.later=()=>{if(!ready||!S.account())return;clearTimeout(timer);show('同期待ち…');timer=setTimeout(async()=>{
+    if(busy){again=true;return;}busy=true;show('同期中…');
+    try{const r=await getRemote();apply(merge(db,r));await put();S.err='';show('同期済み');}
+    catch(e){show('同期失敗：再試行します');setTimeout(S.later,8000);}
+    busy=false;if(again){again=false;S.later();}
+  },1200);};
+  S.login=()=>{if(!pca){alert('Microsoftのログイン部品を読み込めませんでした。通信を確認してもう一度開いてください。');return;}pca.loginRedirect({scopes:SC});};
+  S.init=async()=>{
+    if(!window.msal)return;
+    try{
+      pca=new msal.PublicClientApplication({auth:{clientId:CLIENT_ID,authority:'https://login.microsoftonline.com/consumers',redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});
+      await pca.initialize();const r=await pca.handleRedirectPromise();
+      const a=(r&&r.account)||pca.getAllAccounts()[0];
+      if(a){pca.setActiveAccount(a);ready=true;show('確認中…');await S.pull(false,false);
+        // 最初のログイン直後：この端末にしかないデータもOneDriveへ
+        if(r&&r.account)S.later();
+        document.addEventListener('visibilitychange',()=>{if(!document.hidden)S.pull(false)});
+        setInterval(()=>{if(!document.hidden)S.pull(false)},30000);
+        render();}
+    }catch(e){S.err='ログインエラー：'+e.message;render();}
+  };
+  S._merge=merge;
+  return S;
+})();
+$('#syncBtn').onclick=()=>Sync.pull(true,true);
+
 render();
+Sync.init();
 </script>
 </body>
 </html>
