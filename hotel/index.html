@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAMAAAAKE/YAAAAAIVBMVEX4+Pjz8/NxcXGPj4+urq7Pz8/o6OgbGxsREREvLy9PT08ZFHGuAAADYUlEQVR42u2b647jIAxGCQZs/P4PvAICpJdpw+wl7s53/jSKkHpKCTbgOAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH87mvacQ0/FeSinGGCpEVD7i1Z5HIssOc845M48bt7Da8fZyHn+1bIcWpIWutu2EzFnLqB70oUx+QORzsbYzQs7+OjYyQCgvaJBIvlq4TG288o8nEbnauMx3aw8Xi2xXKy9LZxPSm4iE883VxPAofbdLpxrM48ueVOGrhZtGfxB7kOGs9/g4WpuQ9kM6i5YYEjpEI7woxy5tYcor/dvSuyAvelF9/4nmpO+FApNzqQiTmpIOL6SjSNhU7EnHPvM+kXYkrFJ8uzSJXi3sWmQe9o9CXiSnD5MOnsX7zblgS9rxlH7I90iLtLMnnXfp9CQJ8WW1mG+kTTyIL6VTVK6r9JBtSWvP255mTr5JRnPS+4YHP8tRU4vffXgEI9K+S6to+qLNpmRUOrJwTemO1BvKutmSpi7tos6tJs4tQW27B2MVaUd6Lmy3lFJ6tQqwKP0WSP+W9MLC1op0+EzphX0PSP886ZlGb/PgJc4zlhjSbGwjnz5I09x/9nOPryy54mhsTTrWEB7azRLM07jU0diKdPegeRZE079e5ofG10KHbhxHQe3ysaetrBEPHmUg70mojvO3TUX6Vp4jG2cuN503p4yNfA+UicamqSHphan3I6X9Z0rbOLL9X6XnAkztSUfNvToi5FEoEXjuLdiTTuXEvk3JtQYk1x6Ox5IJO9K3EfEQxqO7D+O6ssz5J9LxPoxHdx/GsznpFsbr8N1mGK+DpqsalHaBwj5THMO4H5eODUq/5UOlbZQDLUlbqWFaStzsSL/t6RnGDUofwnjS7PfYTYcwLpK+8x1/HD+kE4+IsuUxT98EF3vSh9V4C451WOhc41qS7onFCWk2UcJ0rPA5MTzYRDVQ7clxUuTfPYhWpPP7aWxOeVakeaUwL9vY6U1LJZCQ/j5xqWiebew/luXK6YCRjGwwuUTnc6ClM8e/TtRSYeoplBcDUuOxVWAbQ3q3+eJdi/riS6tFqC8yZBuJaUPlDOxtZEtvpLkOmtLNZOw1qGN5SnnhpSmGGJOBSvqXhFI5HU39/QAAAAAAAAAAAAAAAAAAAAAAAAAAAPwwfgGNySNiwBPZ6wAAAABJRU5ErkJggg==">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2f5d9e">
@@ -205,7 +205,7 @@ return h}
 var curC=null;
 function clients(){var o={};K("p").forEach(function(p){if(p.cl)o[p.cl]=1});K("c").forEach(function(c){if(c.n)o[c.n]=1});return Object.keys(o).sort()}
 function cpick(cs,cur){return'<select data-cs="'+cs+'" style="margin-top:3px"><option value="">（未設定）</option>'+clients().map(function(c){return'<option value="'+esc(c)+'"'+(c===cur?" selected":"")+'>'+esc(c)+'</option>'}).join("")+'<option value="__new">＋新しい取引先を入力</option></select><input data-cn="'+cs+'" placeholder="新しい取引先名" style="display:none;margin-top:6px">'}
-function vInfo(p){return'<div class="card"><label>案件名<input data-id="'+p.id+'" data-f="n" value="'+esc(p.n)+'"></label><label style="margin-top:8px">取引先'+cpick(p.id,p.cl||"")+'</label><label style="margin-top:8px">現場・住所<input data-id="'+p.id+'" data-f="ad" value="'+esc(p.ad||"")+'"></label>'+vr("売上（円）",p.id,"v",p.v)+'<label style="margin-top:8px">メモ<textarea rows="4" data-id="'+p.id+'" data-f="mo">'+esc(p.mo||"")+'</textarea></label></div><div style="text-align:center">'+dbtn(p.id).replace("削除","この案件を削除")+'</div>'}
+function vInfo(p){return'<div class="card"><label>案件名<input data-id="'+p.id+'" data-f="n" value="'+esc(p.n)+'"></label><label style="margin-top:8px">取引先'+cpick(p.id,p.cl||"")+'</label><label style="margin-top:8px">現場・住所<input data-id="'+p.id+'" data-f="ad" value="'+esc(p.ad||"")+'"></label>'+vr("売上（円）",p.id,"v",p.v)+'<label style="margin-top:8px">メモ<textarea rows="4" data-id="'+p.id+'" data-f="mo">'+esc(p.mo||"")+'</textarea></label></div><div style="margin:12px"><button class="btn" id="dup" style="width:100%">'+(armed==="dup"?"もう一度押すと複製します（日程も一緒にコピー）":"この案件を複製（日程も一緒にコピー）")+'</button></div><div style="text-align:center">'+dbtn(p.id).replace("削除","この案件を削除")+'</div>'}
 function vList(){var ps=K("p"),h='<div class="card"><b>新しい取引先</b><div class="row" style="margin-top:8px"><input id="ncn" placeholder="取引先名"><button class="btn p" id="mc">追加</button></div></div>';
 var ks=clients();if(ps.some(function(p){return!p.cl}))ks.push("");
 if(!ks.length)h+='<div class="emp">取引先がまだありません。<br>上の欄に取引先名を入れて追加してください。</div>';
@@ -275,6 +275,9 @@ else if(ds.xd!==undefined){var xk="x"+ds.xd;if(armed===xk){armed=null;setXs(curP
 else if(ds.tg){var d=find(ds.tg),m=(d.m||[]).slice(),i=m.indexOf(ds.w);if(i>=0)m.splice(i,1);else m.push(ds.w);d.m=m;touch(d);render();push()}
 else if(ds.del){if(armed===ds.del){armed=null;del(ds.del);render();push()}else{armed=ds.del;render()}}
 else if(t.id==="ad"){var p=curP(),l=calc(p).ds,last=l.length?l[l.length-1].dt:null,dt=new Date();if(last){dt=new Date(last+"T00:00:00");dt.setDate(dt.getDate()+1)}add({k:"d",p:p.id,dt:ymd(dt),loc:"",cnt:0,ns:"",kt:"",m:[]});render();push()}
+else if(t.id==="dup"){if(armed!=="dup"){armed="dup";render();return}armed=null;var sp=curP();if(!sp)return;var np=JSON.parse(JSON.stringify(sp));delete np.id;delete np.t;np.n=(sp.n||"")+"（コピー）";np.s=Date.now();add(np);
+K("d").filter(function(d){return d.p===sp.id}).forEach(function(d){var nd=JSON.parse(JSON.stringify(d));delete nd.id;delete nd.t;nd.p=np.id;add(nd)});
+pid=np.id;view="proj";tab="i";render();window.scrollTo(0,0);push();status("複製しました")}
 else if(t.id==="pdf"){mkprev(t)}
 else if(t.id==="pvx"){var pv=$("pv");if(pv)pv.parentNode.removeChild(pv);pdfF=null}
 else if(t.id==="pvs"){mkPdf(t)}
