@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="支払管理">
 <meta name="theme-color" content="#1d1d1f">
@@ -15,7 +15,8 @@
   --paid:#2f7d4f; --paid-bg:#e7f3ec; --due:#c0392b; --due-bg:#fbeaea;
   --soon:#b9770e; --soon-bg:#fdf3e1; --quote:#8e8e93; --quote-bg:#efeff1;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{margin:0;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;font-size:15px}
 header{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;
@@ -95,7 +96,8 @@ textarea{min-height:70px;resize:vertical}
   max-height:92vh;overflow:auto;padding:8px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .22s,visibility .22s;visibility:hidden}
 .sheet.open{transform:none;visibility:visible}
 .sheet .grab{width:40px;height:5px;background:#ccc;border-radius:3px;margin:4px auto 10px}
-.sheet h3{margin:4px 0 4px;font-size:17px}
+.sheet h3{margin:4px 44px 4px 0;font-size:17px}
+.sheet .x{position:sticky;top:0;float:right;margin:-2px -4px 0 0;width:34px;height:34px;border-radius:17px;border:0;background:#e3e3e0;color:var(--ink);font-size:16px;z-index:2}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;margin-top:10px}
 .kv dt{color:var(--sub)} .kv dd{margin:0;word-break:break-all}
 .note{white-space:pre-wrap;font-size:13px;color:var(--sub);background:#fff;border-radius:10px;padding:10px;margin-top:10px}
@@ -572,9 +574,11 @@ $('#jsonFile').onchange=async e=>{
 };
 
 /* ===== シート ===== */
-function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheetBg').style.display='block';requestAnimationFrame(()=>$('#sheet').classList.add('open'));}
-function closeSheet(){$('#sheet').classList.remove('open');setTimeout(()=>$('#sheetBg').style.display='none',220);}
-$('#sheetBg').onclick=closeSheet;
+let sheetBack=null;
+function openSheet(html,back){sheetBack=back||null;$('#sheetBody').innerHTML='<button class="x" id="shX" aria-label="閉じる">✕</button>'+html;$('#shX').onclick=cancelSheet;$('#sheetBg').style.display='block';requestAnimationFrame(()=>$('#sheet').classList.add('open'));}
+function cancelSheet(){const b=sheetBack;sheetBack=null;if(b)b();else closeSheet();}
+function closeSheet(){sheetBack=null;$('#sheet').classList.remove('open');setTimeout(()=>$('#sheetBg').style.display='none',220);}
+$('#sheetBg').onclick=cancelSheet;
 const sheetOpen=()=>$('#sheet').classList.contains('open');
 function accOpts(cur){const a=[...D.settings.accounts];if(cur&&!a.includes(cur))a.push(cur);return a.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('');}
 function prevYM(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return d.getFullYear()+'-'+pad(d.getMonth()+1);}
@@ -606,7 +610,9 @@ function openInv(id,presetV){
     <div class="field"><label>メモ（現場名など）</label><input type="text" id="eM" value="${esc(i.memo||'')}"></div>
     ${i.exported?`<label class="muted" style="display:flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" id="eX" checked> 弥生に取込済み</label>`:''}
     <button class="btn block" id="svInv">${isNew?'追加':'保存'}</button>
+    <button class="btn sub block" id="cxInv">やめる</button>
     ${isNew?'':'<button class="btn red block" id="dlInv">この請求書を削除</button>'}`);
+  $('#cxInv').onclick=closeSheet;
   const upd=(fromVendor)=>{
     const v=findV($('#eV').value);
     $('#newV').style.display=(!v&&$('#eV').value.trim())?'block':'none';
@@ -621,7 +627,7 @@ function openInv(id,presetV){
   ['#eR','#eK','#eP','#eT','#eDo','#eNT'].forEach(s=>{$(s).oninput=()=>upd(false);$(s).onchange=()=>upd(false);});
   document.querySelectorAll('#stSeg button').forEach(b=>b.onclick=()=>{st=b.dataset.s;document.querySelectorAll('#stSeg button').forEach(x=>x.classList.toggle('on',x===b));upd(false);});
   document.querySelectorAll('#sheetBody [data-copy]').forEach(b=>b.onclick=()=>copy(b.dataset.copy,b.dataset.cl));
-  document.querySelectorAll('#sheetBody [data-editv]').forEach(b=>b.onclick=()=>openVendor(b.dataset.editv));
+  document.querySelectorAll('#sheetBody [data-editv]').forEach(b=>b.onclick=()=>openVendor(b.dataset.editv,()=>openInv(id,presetV)));
   upd(false);
   $('#svInv').onclick=()=>{
     const vn=$('#eV').value.trim();
@@ -645,7 +651,7 @@ function openInv(id,presetV){
   };
 }
 
-function openVendor(id){
+function openVendor(id,back){
   const isNew=!id;const v=isNew?{name:'',kana:'',tno:'',defAcc:D.settings.accounts[0],tel:'',address:'',memo:''}:vendor(id);if(!v)return;
   const t=terms(v);
   const opt=(arr,val)=>arr.map(([k,l])=>`<option value="${k}" ${String(val)===String(k)?'selected':''}>${l}</option>`).join('');
@@ -670,7 +676,9 @@ function openVendor(id){
     <div class="field"><label>住所</label><input type="text" id="vA" value="${esc(v.address||'')}"></div>
     <div class="field"><label>メモ</label><textarea id="vM">${esc(v.memo||'')}</textarea></div>
     <button class="btn block" id="svV">保存</button>
-    ${isNew?'':'<button class="btn red block" id="dlV">この取引先を削除</button>'}`);
+    <button class="btn sub block" id="cxV">やめる</button>
+    ${isNew?'':'<button class="btn red block" id="dlV">この取引先を削除</button>'}`,back);
+  $('#cxV').onclick=cancelSheet;
   const th=()=>{const c=checkTNo($('#vT').value);$('#tH').innerHTML=c==='OK'?'<span style="color:var(--paid)">✓ 形式OK（適格請求書として扱います）</span>':c==='NG'?'<span style="color:var(--due)">番号の形式が正しくありません（T＋13桁）</span>':'空欄なら「登録番号なし」として扱います';};
   $('#vT').oninput=th;th();
   $('#vZ').oninput=()=>{const z=zen2han($('#vZ').value).replace(/[^\d]/g,'');if(z.length!==7)return;
@@ -690,7 +698,7 @@ function openVendor(id){
       bankName:$('#bN').value.trim(),bankBranch:$('#bB').value.trim(),bankType:$('#bT').value,bankNo:zen2han($('#bNo').value).replace(/\s/g,''),
       bankHolder:$('#bH').value.trim(),bankMemo:$('#bM').value.trim(),tel:$('#vP').value.trim(),zip:$('#vZ').value.trim(),address:$('#vA').value.trim(),memo:$('#vM').value.trim()};
     if(isNew)D.vendors.push(stamp(Object.assign({id:uid()},rec)));else stamp(Object.assign(v,rec));
-    save();closeSheet();render();toast('保存しました');
+    save();render();toast('保存しました');if(back)back();else closeSheet();
   };
   const dl=$('#dlV');if(dl)dl.onclick=()=>{
     const n=allInv().filter(i=>i.vendorId===v.id).length;
@@ -815,6 +823,7 @@ const Sync=(()=>{
 })();
 $('#syncBtn').onclick=()=>Sync.pull(true,true);
 
+document.addEventListener('gesturestart',e=>e.preventDefault());
 render();
 Sync.init();
 </script>
