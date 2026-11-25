@@ -73,6 +73,10 @@ input[type=search],input[type=text],input[type=date],input[type=month],input[typ
   font:inherit;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff;color:var(--ink);width:100%}
 textarea{min-height:70px;resize:vertical}
 .toolbar input[type=search]{flex:1;min-width:0}
+input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;height:44px;line-height:24px;text-align:left}
+input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-and-time-value{text-align:left;margin:0}
+.inline input,.inline select{height:44px}
+header .add{flex:none;border:0;background:#fff;color:var(--ink);border-radius:16px;padding:6px 12px;font:inherit;font-size:14px;font-weight:700}
 .toolbar select{width:auto;min-width:0}
 .btn{font:inherit;border:0;border-radius:10px;padding:11px 14px;background:var(--ink);color:#fff;font-weight:600;font-size:15px}
 .btn.sub{background:#e9e9e6;color:var(--ink)}
@@ -134,6 +138,7 @@ textarea{min-height:70px;resize:vertical}
 <header>
   <h1 id="ttl">支払管理</h1>
   <button id="syncBtn" class="sync" hidden></button>
+  <button class="add" id="hdrAdd">＋ 追加</button>
   <select id="yearSel" aria-label="年"></select>
 </header>
 <main id="main"></main>
@@ -312,7 +317,10 @@ function homeView(){
   const max=Math.max(1,...months.map(x=>x.p+x.u));
   const bars=months.map(x=>{const h1=x.u/max*100,h2=x.p/max*100;
     return `<div class="bar ${year+'-'+pad(x.m)===nowM?'sel':''}"><div style="flex:1"></div>${x.u?`<div class="seg u" style="height:${h1}%"></div>`:''}${x.p?`<div class="seg p" style="height:${h2}%"></div>`:''}<div class="m">${x.m}</div></div>`;}).join('');
-  const byA={};yr.forEach(i=>byA[i.account]=(byA[i.account]||0)+i.amount);
+  const mOpts=months.filter(x=>x.n).map(x=>year+'-'+pad(x.m));
+  if(filt.accM&&!mOpts.includes(filt.accM))filt.accM='';
+  const src=filt.accM?yr.filter(i=>baseYM(i)===filt.accM):yr;
+  const byA={};src.forEach(i=>byA[i.account]=(byA[i.account]||0)+i.amount);
   const accRows=Object.entries(byA).sort((a,b)=>b[1]-a[1]);
   return `
   <div class="kpis">
@@ -324,17 +332,19 @@ function homeView(){
   </div>
   <div class="card"><h2>月別の支払（${year}年・何月分で集計）</h2><div class="bars">${bars}</div>
     <div class="legend"><span><i style="background:var(--ink)"></i>支払済</span><span><i style="background:#e3b3ac"></i>未払い</span></div></div>
-  <div class="card"><h2>科目別（${year}年）</h2>
+  <div class="card"><h2>科目別</h2>
+    <div class="inline" style="margin-bottom:8px"><button class="btn sm sub" style="flex:none" data-accm="-1">◀</button>
+      <select id="accM"><option value="">${year}年 1年分</option>${mOpts.map(m=>`<option value="${m}" ${m===filt.accM?'selected':''}>${year}年${+m.slice(5)}月分</option>`).join('')}</select>
+      <button class="btn sm sub" style="flex:none" data-accm="1">▶</button></div>
     <table class="mt"><thead><tr><th>科目</th><th>件数</th><th>金額</th></tr></thead><tbody>
-    ${accRows.map(([a,v])=>`<tr data-acc="${esc(a)}"><td>${esc(a)}</td><td>${yr.filter(i=>i.account===a).length}</td><td>${yen(v)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">まだありません</td></tr>'}
-    </tbody><tfoot><tr><td>合計</td><td>${yr.length}</td><td>${yen(sum(yr))}</td></tr></tfoot></table>
+    ${accRows.map(([a,v])=>`<tr data-acc="${esc(a)}"><td>${esc(a)}</td><td>${src.filter(i=>i.account===a).length}</td><td>${yen(v)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">まだありません</td></tr>'}
+    </tbody><tfoot><tr><td>合計</td><td>${src.length}</td><td>${yen(sum(src))}</td></tr></tfoot></table>
     <p class="muted" style="margin:8px 0 0">科目をタップすると、その科目の請求書が一覧で見られます。</p></div>
   <div class="card"><h2>月ごとの一覧（${year}年）</h2>
     <table class="mt"><thead><tr><th>月</th><th>件数</th><th>金額</th><th>未払い</th></tr></thead><tbody>
     ${months.filter(x=>x.n).map(x=>`<tr data-month="${year}-${pad(x.m)}"><td>${x.m}月分</td><td>${x.n}</td><td>${yen(x.p+x.u)}</td><td class="${x.u?'un':''}">${x.u?yen(x.u):'－'}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">まだありません</td></tr>'}
     </tbody><tfoot><tr><td>合計</td><td>${yr.length}</td><td>${yen(sum(yr))}</td><td>${sum(unpaid)?yen(sum(unpaid)):'－'}</td></tr></tfoot></table>
-    <p class="muted" style="margin:8px 0 0">月をタップすると、その月の請求書が見られます。</p></div>
-  <button class="btn block" data-act="add">＋ 請求書を追加</button>`;
+    <p class="muted" style="margin:8px 0 0">月をタップすると、その月の請求書が見られます。</p></div>`;
 }
 
 /* ===== 行 ===== */
@@ -510,7 +520,7 @@ function bind(){
   document.querySelectorAll('[data-payv]').forEach(b=>b.onclick=()=>payMany(allInv().filter(i=>i.vendorId===b.dataset.payv&&!isPaid(i)).map(i=>i.id)));
   document.querySelectorAll('[data-ug]').forEach(b=>b.onclick=()=>{filt.ugroup=b.dataset.ug;render();});
   document.querySelectorAll('[data-month]').forEach(r=>r.onclick=()=>{filt.month=r.dataset.month;filt.acc='';tab='list';render();scrollTo(0,0);});
-  document.querySelectorAll('[data-acc]').forEach(r=>r.onclick=()=>{filt.acc=r.dataset.acc;filt.month='';tab='list';render();scrollTo(0,0);});
+  document.querySelectorAll('[data-acc]').forEach(r=>r.onclick=()=>{filt.acc=r.dataset.acc;filt.month=filt.accM||'';tab='list';render();scrollTo(0,0);});
   const fq=$('#fq');if(fq)fq.oninput=e=>{filt.q=e.target.value;const p=fq.selectionStart;render();const n=$('#fq');n.focus();n.setSelectionRange(p,p);};
   const fst=$('#fst');if(fst)fst.onchange=e=>{filt.st=e.target.value;render();};
   const fa=$('#facc');if(fa)fa.onchange=e=>{filt.acc=e.target.value;render();};
@@ -521,6 +531,9 @@ function bind(){
   const bk=$('#back');if(bk)bk.onclick=()=>{vendorOpen=null;render();scrollTo(0,0);};
   const av=$('#addV');if(av)av.onclick=()=>openVendor(null);
   const af=$('#addForV');if(af)af.onclick=()=>openInv(null,vendorOpen);
+  const am=$('#accM');if(am){am.onchange=e=>{filt.accM=e.target.value;render();};
+    document.querySelectorAll('[data-accm]').forEach(b=>b.onclick=()=>{const o=[...am.options].map(x=>x.value);let k=o.indexOf(filt.accM||'')+(+b.dataset.accm);
+      if(k<0)k=o.length-1;if(k>=o.length)k=0;filt.accM=o[k];render();});}
   const ex=$('#exM');if(ex)ex.onchange=e=>{filt.exM=e.target.value;render();};
 }
 function updSel(){$('#selbar').classList.toggle('show',selMode);
@@ -824,6 +837,7 @@ const Sync=(()=>{
 $('#syncBtn').onclick=()=>Sync.pull(true,true);
 
 document.addEventListener('gesturestart',e=>e.preventDefault());
+$('#hdrAdd').onclick=()=>openInv(null);
 render();
 Sync.init();
 </script>
