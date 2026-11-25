@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>支払請求書</title>
+<meta name="apple-mobile-web-app-title" content="支払">
+<meta name="theme-color" content="#1d1d1f">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAZ4UlEQVR42u1deVxTZ9a+WxKy3CwEBEdU0FpUMFQp1kq1nVFKHa3WHaydb1orVdCO7czXT52OtZt1aadasTjiOlWxttal/bSLItJ2aq0bbh8oilJtHSGBhCw3yV2+P47euU0UUKDcxPf5gx+/kITkvs895znnPee8eOfOXTEEhJuBQJcAAZEDAZEDAZEDAZEDAZEDAZEDAZEDAZEDAZEDAZEDAQGRAwGRAwGRAwGRAwGRAwGRAwGRAwGRAwGRAwGRAwEBkQMBkQMBkQMBkQMBkQMBkQMBkQMBkQMh3EDJ/PPhOE4QBI7joXuJBUHgeV4QBESO1rNpBIFhmNfrZRiGZdmQ5QauUFBqtVqpVIYcRWRKDpIk3W63388mJMSnpvbr1atXiFKDZdmjR48eO3b86tWrWq1WqVRyHIfI0SJm2Gw2i6XPnDlzBg16iKbpUHfeP//886effrZkydt1dXV6vT5UDCEut8k+JElarbYpU55+/fXXdDodhmEcx4Wiw5b6R3CRVVVVubl5Bw9+bzKZQoIf8iIHRVFWq/WZZ55+992/Ay1CXY2KmpTjOIqi7HbHmDFjyspO0DQtf/8iI3IQBOHxeHr06PHVV1+oVCpRk8LFDVU5KmE2y7IURZ05cyYzcxiO4ziOy/x7kQaDUT7kcLvd+fnLExMTOY4jSRIe53ke7EcoApYfKEIQBMuyMTExTqezuHi/TqfjeR5ZjmbdYV6vNy4u7sCB/RqNRryggiDAL3V1dSRJhpAJwXGc53mj8Rf3HjjKsrITmZmPRUREyPzrUPIxGwzD3H9/qlarFc0G2Ixvvvlmzpy/Wq1WiqJCixx+vz85Ofndd9/p1KmTIAiiMk1MvLdbt25VVVURERFyNh6UfC4lx3GQzxAZAOZk7ty/Hjt2zGQyhVCGQNTX27dv79Kl8zvvvA0kAHOiVqsTEuIrKirUajWyHM2FdPnBoXg8HqvVZjKZSJIU9WmogCRJk8l06dKlAGUKRhElwe5c24uPkCQJrjrkYhaIYBUKBdqVbcNLHOpJDkQOBAzVcyAgciAgcqBLgIDIgYDIgYDIgYDIgYDIgYDIgYDIgYDIgYDIgYChdkgspKp2YQcf6jQx2RSjhPoGcsiTgyAIv9/vdDoVCgXLsizLyYQeNE0rFIpw4gcVcsxwu93R0VHz5v0tOTn5ypUrly5davclARv28cfbzp8/L/Oy0LAlB5TsRkVFbd68KSUlRW4f78iRI2fOnJF5WWjYkoMkybq6utdeezUlJcXr9YLBkIMZhyp5v98fBs15oUoOnudVKpXFYoHWQvnUG4ttVyiUbU+34vP5fvrpJyg5FmQGlOfA2lf3qVSq5cvz7Xa7UqmUT88jSZKyCqrvUrei1WoPHz48adKTr7/+Wrdu3WSyHjwvEASONAfW7okmk8n0ww+HR4wYaTabxU7adjdqGIa7XC6NRhNybXlhlQTjOE6j0QiCYLVa5RZMIcshC/+CYZjcOsnCT5NSGOokQ0C7sgiIHAiIHAiIHAhIkGKtNc8DCWREjusBrawqJ1CeQ0a3qVqthoF8MliS6xnSMMughyQ5KIqqra3Ny8udPn2adGJp++6tTJny7P79JXq9Pmwy6KFtOQwGg3w+UpgVkIa85hAEAWZGy6HYBwlS2UUrciikCMtijpC3HCzLyuFsCmQ5ZKc5tFoNRVHt7lOQ5pCdzdBoNPv3l3g8DNy17c5UHMerqi6qVCrU1NT+5FCr1cXFJbt375HPp6JpWqVShU1HU8i7FZrWYXIqUUNuBaXPMbQri4DIgYCAyIGAyIGAyIGAyIGAyIGAyIGAyIGAyIGAyIGAyIGAgMiBgN0VNaQhfFMSBEmSwX1QsppAh8jRPvB4PHa7ned5n8+HSQqVYYSmSqVSKBQEQbRvWQIiB/brl6oLgtCrV0+fz5eUlNSxY0cwEjiO2+2O06dPMwxTWVlptVo9HkalUmo0Goqi2qWSiAr7lQjohxMEofGOtDt4SfPfSiTHggULGnmh1WotLy///vtDpaWlR44cramppWldRETEr0wRKryZwTCM2+2W+nUcx/V6/a3aTGC8el1dXcCDjbwEu3VfNc/zNpst2C/AW0FTlnSxxTYcs9mcnp6enp7+4osvnDlz5uOPt23b9smFCxegTPVXa7ekwljxeTye1NTUwYMH+Xw+6CshCMLr9RYVFXk8THDNOo7jXq+3W7eE4cOH8zwPtziMTS4qKmIYbzP5AQtst9tpmp45c2ZeXu5Nu70bKZoXBIHneUHASJLo3bv3vHm9c3Onr1+/YcOGf1ZX/2gw6EGOIHK0UPe5Z8/+n4AHr169+tFHHxuNxoBbkCRJt9szbdq0P/zhKenjX3751YoVBTSta856kCTp8/kYhhk2bNi8eS8nJiZitzPVAzgk9Uc8z/O8EBUV9Ze//PmPf/yvpUuXrVu3nmEYnU7X1g1dYZvngHHHhw79UFCwkud5r9fLcRz8nDRpEkmSwavi9Xq7dOk8YsRwlmX9fj/8dLvdr776KkHgzWz/b2hoUCqVy5e/t2nTB4mJiRzH8bwQrGBYlgUBETApG9r4pNqCIAiKIuFVUVFRb7zx+o4d27t3715ba23rhq5wToJxHEfT+rVr17ndbqVSCSEiQRDp6ekWi8XtdksNO0mSTqdz+PDfR0ZG4jiuUCjg544dO0+dOk3TdJNmg6Iom81msVg++2zXpEnZHMfxPE+SpEgsnuc5jgOrQFEUJDnq6+sdDofD4aivr4cGLfFPPM9zHC/VttA4npZ2/+ef787Kmmi1Wtt0Ykw4uxVBEDQadUVFxebNRTk5U2GSB8/zCgU1fvy4w4cP63T/8RQwGDk7O0t8LUEQDMO8//77zTl8iSRJq9X68MODN278QK/XB/T+g4IBLjqdzuPHjx89euzkyVNw0hQ8znFsTExsp06d+vRJ7tMnuW/fvh07dpT24oqJEI7jDAbDqlUrIyNNBQUrjUYjyCNEjts2HlqtdtWqwuzsLJ1OJwrD0aOfWLp0mcvlgtuRIIiGhoZBgwbdd999giDAkR0kSW7d+tHJk6fMZnPj3p2iKKvVmpMzddGihQRBwHEw0s8AAuLMmTNr164rLi6urv7R5/NBhlSpVIq2obbWWlZWtmvXLpIkO3ToMGDAA8888/SgQYNAfoq9/PCZeZ5fuPCtpKSkF154Eb4acit3MuPl7NmzmzZtBkMNFzo2NjYzM9PpdIp3JMdxYDbA38NhcgUFBWq1unGzAd7kkUceXrJkMfwLqZaEtayoOPvkk5MzMjILC1f//PNVnU4XFRVlNBp1Op3iBiiK0mg0BoMB/uRyuXbt+nTcuAlDh2bs21cMh/2IChq8DMuyTz01+fnnZ9bU1LTFsO/w33gD41FYWOhwOCCghZssOztLqVSK7iMhIWHYsMfE/ASO41u2fHj69P9pNJpGyEGSpMPh6Nev34YNGyBvIeoYICLHce+88/ehQzP27PmcJEmzOVKpVILqhOcHR7AgViiKMplMOp3u9OkzEydm5ebmXbt2DUya9L+zLDtv3t+eey6nLfgR/uQA43HuXKVoPMAsp6WlpaRY3G4XRVEul/vxx0eI47wIgnA6nStX/kOjUfM81/jJUTqdrqBghdFokDKD4ziCIC5evDh69JhXXpmP4zhMqGLZ/4QhEA3dChAPw1F2arV6w4Z/Dh36aGnp11J+gP3gef7NN99IS0urr69v3fFod8WW/Q3jsVo0HhzHUxT5xBNPMIyP53ma1k2cOAEuN5iNzZuLysvLNRpNQCAaQA6Px7NkyeLExESWZcWFAZFx4sTJzMxh33zzbUxMjNQjiJTV6/VmszkyMtLcKEwmo8FguPfee+vq6kaNeqKoaAsYDGkyXq1Wr1iRbzQaWnec4V2x8QaXr7KycuPGjbm5uRzHQXg5atTIZcveq6mpHTp0SFJSkph1cDga/vGPVVqttpFENUmS9fX1I0YMHz9+nDQ2Act04sSJceMm2O12o9Ho9/uDc6Mul2vt2jX9+6c1Y74ILgg8juM5OdP27dv3/PN/wnE8K2uiqHOBKz17Jr744otz5syNiopqreTY3VLsc8N4rLHb7SDueJ6Pi4sbOnSI3V5/Q4ryYDY2btx47tw5tVrdSAjAcRxN0/Pnzw/WGdXVP44fP9Fut2s0mlutE1gOg8FgMpkMTUBvNBoNBoMg8H6/X61W5+Q8BwpG5C78PnXqs/369RNVNiIHhjV7CrZGo7lw4cLGjZuAGaBMx4wZ061bt4yMoRiGEQROEITd7igsXA0pkFtNgqMoqr6+fvz4cd27dxNvfWASy7IzZsysqalp3PDAMyGp1eS5kxBA0TQNPigqKmrWrFmXLlWLOyzwIZVK5YwZeV6vF5HjNnwKSDyGYZRKVUHBSpvNJp7n2L9/2htvvE7TNCwDjuOrV6+uqKigKMrn80ESPfg9/X6/yWTKzf3FjhqwJD9/xb59xSaTqUnbfrunT7733rLDhw+VlBTn5k4/e/bcyy+/LN3UBaKMHPl4KxqP8M9zKJVK0H0mk6lTp984HI5t2z4Rb3S9Xp+VNRF+J0nSZqvbsWNn165djUaj2RxpNpuNRmOw2XA4HKNGjZSaDZAa589fePvtd8zmyOZ4fdhhCcItjY1WqzWbzQaDQaFQGI3Gzz77308+2S46FzCHSqXyuedyGIZpFXKEsyAFzThhwvjFixeJ8g3udUiDSse9iQuwc+d2iqIg5UAQxOXLl0eNGs0wjLhXBwdjZ2VlBWcp5s9/1eVyBe/33pS1RqPxtqYhihN5oXZQr9e/+eaC3/3utyaTCb4CfMJHH81ISIivqalt+XRDKuwth0qlanwKtlRVqFRKlSpS+leXyxUQaLjd7uTk5P7904B/okM5d+5ccXExTdPNYYZSqVy3bn3nznEiNSFjxrLs1KnPiut9q4m8MDKvsrLyiy++zM7OAtJAwBwZGfnoo4+uWlXYZNYfhbLXc00B8/NFRx5g56XJUFhyj4cJIAfDMI888jBFUWIECzdoYeFqp9PZnCW5QY514jNBMTidzvz85bAD3KRfAH6sWbNm3LixUvMjCEJGRsbq1WtavttChXf4qtPpSkoOZGY+xvOCtFaQZdnCwlU9eyaKSW6SJBcseGvXrl16vQGyooJwvWrQ7/eLA4oFQaAoqn//B0STAx6qoaFh7959zT90GNyKWNojCILT6Vy7ds348eOkNqORA0OAHCdPnjpx4mRqaj/4ChCl9+nTJzo62u12B5etIHL8QnbU1dVduXIFx3HxKhEE7vP53G53wJOrqi4dPnwkMjISVCGOX9+4p2laWmEaGRmZktJHWgpKkmRZ2Ynq6mppDUBzuCu1GStW5Afk05o8SoYkSbfbXVJSkpraTyxhFwQhJqbDPfd0P3Tohxbu1ob/lr3JZOrZM1FqOXAc9/tZjUYT8OT4+K6pqal6vT7Acly+fFm89D6fr1evnnBSujS9cfz4ca/Xq9frb6u0U8oMUTpInZrX6xUEISIi4lbmR6FQHD9+XFqRCmRNTk7+9tt/tbDUNMyjFYfDMXLk48uWLZXufWA3RpWL1xT+NHfu7NmzX5LabZIkq6urMzOHQbSC4zjLspGR13dWRaeAYdipU6du14Y3yYz6+vrp03OXLl16qwOpQLtUVlZ6PB7I54pVP7GxsS0vUg9/QUpRFBRMNOeZwQ8GGBhIuksLgwmCYFm2uvpHCIBbixkOh2P8+IkVFRVaraYR4UJRVG2t1WazderUSdwbwjAsLi4OhbJNJ869Xq/dbg+IVgQBo2ldgC1xu90+ny8g42mz2aTvxnFcfHy8SA5YD6fTWV1dDdUhrcWMrKzs7777rkePHo0YACCHzWarqroI5JC4yPjbIutdGq3s3bvvoYcGS80yjmN+P/vRR1uTk5Ok0cr8+a9u3brVYDDe8NMChuHQzio9TiV4l/W2DuNpDjMmTsz67rvvm5moEKtTsV8m+FEo2/SF8/l8Ho8nuK0t+Lo3NLhqa60cx0tv1pu2NN7xCbfNZMa//nUwOjoqOJ76lc/Xpe6GLdkAwSEVkr/UHCSok4AbMeAWDJYmkNhucoWaz4yoKLNon6QTGW46mgGKDpujnzC08XZT3xyMZj4tuPcJVIg0f6VWq2NjYxqvwrozZkBUBY5D7KaRcpfjOL1eHxsbG0B36NFtoUVBIxhuj2QURZWXl0tXArZvOnfufOzY8Vstxh0zQxAEm83GsqwgYDh+vQDR4/GI1PT7/dHR0b/5TUdpxhbDsPLycqm4RuTA7uC4FtCeYtt0c0SD2+2GxjXp6vbu3Xv79h03XYw79ibQXDls2HAcx0Edg6xmGMZgMEDmxufzJSTEQ/+E1KI0NDS0fNf+7iWHRqMhCAKuIPxsMjEAm/WVleftdntkZKQ0r2CxWG6aBLtjmyG1HMHvKbbb+P3+5ORkyLVIv0tZWRnKc9yhdyBJ8s9//otOpwVzDT/Pnj2n1WobyTdDurq2tra8vGLgwAdvtMISGIalpvaLiYlxOp1SirSQGdJM7k0FsiAIFKUYPHiw1KcQBFFXV19Zeb7lB85RoVIB2urvefDgwYBrFxER0eTdBmM/Dh06NHDgg+KGC8dx0L24Y8dOk8kklmb5/X6Px9MSZgTHSgGjaeLjuz7wQH/RYABfy8vLr1y5clu7gCEQrQRfCKjIagt+6HS6gCrv5thh2M4oLS0Nnr4ydeqz4juAglEoFPn5y1vCDKzRnSOXyzV58pM6nU7UQPDfS0pKIHEXVqFsQHQO15eiKL/fDwa8FREcu0KU2NSrBJqmjxw5WllZKe55gisZMGCAxWJxuVzwTLfb/cAD/SdNypbu+bUWMzAMY1m/yWQaO3ZsQGUJwzB79nzenMkATfPPYDBi8pjSxDDMvff2yMjIAMcJFbMwdLG4uJhhGJ/P75MBeJ6/evWqVqsdMmQItD2K9jwhIb6oaAtMdlOpVOXl5TU1tY89lilGQ63FDJA+L73037///TBx2wiYV1r69fLl+bdbPCBrzQE8OHTokM/nEyUY3JFTpjzz298+cvnyFYWCksO5rZBv0OsNUlMHVeCDBw/Ozs764ION0HZG0/TKlSsJgli8eCF4llZhBhSepaRYpk17ThrBgv1YvXp1a3lhvHPnrrIa/vfVV19YLBbpJmqTBVHy4TeO41arbciQodeuXYNggaKoa9euTZ8+bcmSxQ0NDRMmTGwhMyB4drlcO3ZsT08fKF4osGEHDx58/PFRLZeisotWIFhftGjxpk0bRREgdmTI7bDn4L1Q2N2NijKvWJE/cuQohUJBEDjLsh06dCgoWEmS1IULF77++puYmJg7ZgbYqitXrixc+FZ6+sCA+UE4ji9btrwV9buMLIc4POndd/8+ZcozoONCwmZgv6wTIEmyqGhLXt4MmqbFoQ92u52iqCZ7JBunI0VR//73v/PychcufEs6JQb+6e7deyZPfspgMLTWoFK5CFJpO/yePZ937Nixb9/7IIUghAJEKwL2w2KxdOnSZdu2TwiCUCqVHMep1WqFQnHH1h4U+tWrV2fOnLFo0UJRs4vhq8PhmDo1x+FwtLzGR6bkEO+PXbt2Xbp0KSUlxWg0EqGAYP+YkmJJTk4+cOBATU0tJF7veM0UCoXL5fL7/a+8Mm/evL8FdHiD2Zg164Xi4hKj0dCK843l5VYCJgB36NDhwQcfHDTooZ49e4L8kGc6niCIAQMGiOkv6ZpdvHhx9uy5u3fv1ul0kHtovvEQB3/BBMu33lrw8MODA5jh9/sVCsWaNWtnzXohOjq6dcfWypEcov7w+/0ul4vn+baYhtaKOtrlcv3pT88vWPBmgE4SQ4ktWz5ctGjR+fMXIiIiYMMPMr8BSWFRgMMTYHC70WicPn1aXl4eTesCFCgwY9u2bTk505ozKTV8yCGNCOQWqgR/TpvNtmJF/uTJT0JIKd3QhxvdarXu3r1n/fr1J0+eYhiGoiilUiltpIa+BxizDKvetWuX7OzsMWNGd+/eXUo1sc2ToqiysrJRo0bD8+8ucmAhNRzG5XLNmJE3f/4rwQspTWIeOXK0tLT06NGjlZXnrVZrXV2d2DlH07TJZOrevVtSUlJ6enp6+kCdTifmMKTlRRCqfPjh1tmzZ3u9Puijaf3vhcjRijqppqZm6tSpCxa8AQOfAvqbpcEnhmEMw1it1qqqiwRB4DjGsmxsbMfY2Bix+xJoEVwXCG9SWLh6zpy5sL3QRicoIHJgrbtxWFtbm5aWtmzZ0uTkJHHIh/SmFx+81a6pKEekL8RujLyFTriXXpq9ZcsWk8kEeZS2kn1yC2WxEC89pGn64sWLO3fu5Hn+/vtTxbEZ0jFOsOriKJiASmZxc1hMY4ij03Ec37lz5/TpeSUlJVFRUW2dOEaWo63irIaGhr59+06bljN27FiItsS2+uakfUX7IXqiAwdK33///b1790Gmta0PW0HkaNuz5ZxOp9fr7dev35QpT2dmZkZHR0ulw616o0XrAo/4fL79+/evW7dh7969MO1JdDGIHFhIHyUGO6gMw8THxw8ZMiQjY4jFkhIX16nJ19bV1Z8+faqk5MCXX3558uQpGBMSPAkZkSPkKQKlTHCCh9lsvuee7klJSR06dIiP7xoX11lydKj99OnTLpfrxIkT585V/vTTzz6fT62OgE7/X5MWiBztk9CDiaiQ74ITm6R6FtrmFAqFSqVSKpUEgfO80F7nDqOON+xX23CGW58kSZ1OB8LipkeHimq0XU+jRuRov8bd0HCIaLUQEDkQEDkQEDkQEDkQEDkQEDkQEDkQEDkQEDkQEDkQEBA5EBA5EBA5EBA5EBA5EBA5EBA5EBA5EMIV/w9i9UAzzUF0+wAAAABJRU5ErkJggg==">
+<title>支払請求書 | SML</title>
 <style>
-:root{--bg:#f4f4f2;--card:#fff;--ink:#1d1d1f;--sub:#6e6e73;--line:#e2e2e0;--acc:#1f4e79;--ok:#2e7d32;--warn:#b26a00;--ng:#c62828}
+:root{--bg:#f4f4f2;--card:#fff;--ink:#1d1d1f;--sub:#6e6e73;--line:#e2e2e0;--acc:#1d1d1f;--ok:#2e7d32;--warn:#b26a00;--ng:#c62828}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 header{position:sticky;top:0;background:var(--acc);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;z-index:5}
@@ -46,7 +49,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
 .err{color:var(--ng);font-size:12px}
 .empty{color:var(--sub);text-align:center;padding:20px 0}
 </style>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
 </head>
 <body>
 <header class="row"><h1 id="title" class="sp">支払請求書</h1><button id="syncBtn" class="small" style="background:rgba(255,255,255,.18)" onclick="syncNow(true)">☁ 未接続</button></header>
@@ -202,9 +205,8 @@ function renderSettings(){
   <label>消費税の計算方式</label><select id="sTax"><option value="honsoku" ${s.taxMode==='honsoku'?'selected':''}>本則課税（インボイス区分を付ける）</option><option value="other" ${s.taxMode!=='honsoku'?'selected':''}>簡易課税・免税（区分は付けない）</option></select>
   <button style="width:100%;margin-top:14px" onclick="saveSettings()">保存</button></div>
   <div class="card"><b>OneDrive同期（iPhone・iPad共通）</b>
-  <label>アプリケーション(クライアント)ID</label><input id="sCid" value="${esc(cfg.clientId||'')}" placeholder="施工報告書・ホテル計算と同じID">
-  <div class="note">保存先：OneDrive の「アプリ同期/seikyu.json」<br>Azureの「リダイレクトURI」にこのページのURL<br><b>${esc(location.origin+location.pathname)}</b><br>を追加してください（ホテル計算のときと同じ手順）。</div>
-  <div class="row" style="margin-top:10px"><button class="sp" onclick="cfg.clientId=sCid.value.trim();saveCfg();msalApp=null;signIn()">${account()?'保存して再接続':'Microsoftでログイン'}</button>${account()?'<button class="ghost" onclick="signOut()">ログアウト</button>':''}</div>
+  <div class="note">売上・入金アプリと同じMicrosoftアカウントでログインします。<br>Azureの「リダイレクトURI」にこのページのURL<br><b>${esc(location.origin+location.pathname)}</b><br>が入っていないとログインできません。</div>
+  <div class="row" style="margin-top:10px"><button class="sp" onclick="${account()?'syncNow(true)':'signIn()'}">${account()?'今すぐ同期':'Microsoftでログイン'}</button>${account()?'<button class="ghost" onclick="signOut()">ログアウト</button>':''}</div>
   <div class="note" style="margin-top:6px">${account()?'接続中：'+esc(account().username):'未接続'}${lastSync?'　最終同期 '+new Date(lastSync).toLocaleString('ja-JP'):''}</div></div>
   <div class="card"><b>バックアップ</b><div class="note">OneDriveとは別に、月1回くらい書き出しておくと安心です。</div>
   <button class="ghost" style="width:100%;margin-top:8px" onclick="backup()">バックアップを書き出す</button>
@@ -361,21 +363,16 @@ function restore(inp){
 }
 
 // ===== OneDrive同期 =====
-const CFG_KEY='seikyu_cfg';
-let cfg={};try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');}catch(e){}
-function saveCfg(){try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}catch(e){}}
-const SCOPES=['Files.ReadWrite'];
-const FILE_URL="https://graph.microsoft.com/v1.0/me/drive/root:/"+encodeURIComponent('アプリ同期')+"/seikyu.json:/content";
+const CLIENT_ID='7806d507-6cf4-49ad-b426-30b64e18879c';
+const SCOPES=['Files.ReadWrite.AppFolder'];
+const FILE_URL='https://graph.microsoft.com/v1.0/me/drive/special/approot:/shiharai.json:/content';
 let msalApp=null,syncTimer=null,syncing=false,lastSync=+(localStorage.getItem('seikyu_last')||0);
-function getMsal(){
-  if(msalApp||!cfg.clientId||!window.msal)return msalApp;
-  msalApp=new msal.PublicClientApplication({auth:{clientId:cfg.clientId,authority:'https://login.microsoftonline.com/common',redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});
-  return msalApp;
-}
-function account(){const m=getMsal();return m?m.getAllAccounts()[0]:null;}
+let msalReady=false;
+function getMsal(){return msalReady?msalApp:null;}
+function account(){try{const m=getMsal();return m?(m.getActiveAccount()||m.getAllAccounts()[0]||null):null;}catch(e){return null;}}
 function setBtn(t){const b=document.getElementById('syncBtn');if(b)b.textContent=t;}
 async function signIn(){
-  const m=getMsal();if(!m){alert('クライアントIDを入れてください');tab='settings';render();return;}
+  const m=getMsal();if(!m){alert('Microsoftのログイン部品を読み込めませんでした。通信を確認してもう一度開いてください。');return;}
   await m.loginRedirect({scopes:SCOPES});
 }
 async function signOut(){const m=getMsal();if(m&&account())await m.logoutRedirect({account:account()});}
@@ -397,7 +394,7 @@ function merge(L,R){
 }
 function scheduleSync(){clearTimeout(syncTimer);if(account())syncTimer=setTimeout(()=>syncNow(false),1500);}
 async function syncNow(manual){
-  if(!account()){if(manual){if(cfg.clientId)signIn();else{tab='settings';document.querySelector('nav button[data-t=settings]').click();}}return;}
+  if(!account()){if(manual)signIn();return;}
   if(syncing)return;syncing=true;setBtn('☁ 同期中…');
   try{
     const t=await token();if(!t)return;
@@ -419,8 +416,13 @@ async function syncNow(manual){
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow(false);});
 (async()=>{
-  const m=getMsal();
-  if(m){try{await m.handleRedirectPromise();}catch(e){}}
+  if(window.msal){try{
+    msalApp=new msal.PublicClientApplication({auth:{clientId:CLIENT_ID,authority:'https://login.microsoftonline.com/consumers',redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});
+    await msalApp.initialize();msalReady=true;
+    const r=await msalApp.handleRedirectPromise();
+    const a=(r&&r.account)||msalApp.getAllAccounts()[0];if(a)msalApp.setActiveAccount(a);
+  }catch(e){setBtn('☁ エラー');}}
+  setInterval(()=>{if(!document.hidden)syncNow(false);},30000);
   setBtn(account()?'☁ 同期':'☁ 未接続');
   if(account())syncNow(false);
   if(tab==='settings')render();
