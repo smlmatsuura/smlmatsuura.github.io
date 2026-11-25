@@ -225,11 +225,13 @@ function openModal(h){document.getElementById('sheet').innerHTML=h;document.getE
 function closeModal(){document.getElementById('modal').classList.remove('on');}
 
 function openInvoice(id){
-  if(!D.vendors.length){alert('先に取引先を登録してください');tab='vendors';document.querySelector('nav button[data-t=vendors]').click();openVendor();return;}
   const i=id?D.invoices.find(x=>x.id===id):{vendorId:'',targetYM:(()=>{const [y,m]=today().split('-').map(Number);const d=new Date(y,m-2,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})(),amount:'',payDate:'',kubun:'auto',memo:'',account:'',rate:'10'};
   const vs=[...D.vendors].sort((a,b)=>(a.kana||a.name).localeCompare(b.kana||b.name,'ja'));
   openModal(`<div class="row"><b style="font-size:17px">${id?'請求書を編集':'請求書を追加'}</b><span class="sp"></span><button class="ghost small" onclick="closeModal()">閉じる</button></div>
-  <label>取引先</label><select id="fV" onchange="vendorPicked()"><option value="">選んでください</option>${vs.map(v=>`<option value="${v.id}" ${v.id===i.vendorId?'selected':''}>${esc(v.name)}</option>`).join('')}</select>
+  <label>取引先（一覧から選ぶか、新しい名前をそのまま入力）</label><input id="fV" list="vList" autocomplete="off" value="${esc(i.vendorId?vname(i.vendorId):'')}" oninput="vendorPicked(false)" placeholder="例 〇〇工業">
+  <datalist id="vList">${vs.map(v=>`<option value="${esc(v.name)}">`).join('')}</datalist>
+  <div id="newV" style="display:none"><div class="note" style="color:var(--acc);margin-top:6px">＋ 新しい取引先として登録されます</div>
+  <label>インボイス登録番号（わかれば）</label><input id="fNT" placeholder="T1234567890123" autocapitalize="characters" oninput="kubunHint()"></div>
   <label>勘定科目</label><select id="fC">${accOpts(i.account)}</select>
   <label>税率</label><select id="fR" onchange="kubunHint()"><option value="10" ${i.rate!=='8'&&i.rate!=='0'?'selected':''}>10%</option><option value="8" ${i.rate==='8'?'selected':''}>軽減8%（飲食料品など）</option><option value="0" ${i.rate==='0'?'selected':''}>対象外（消費税なし）</option></select>
   <label>何月分の請求か</label><input type="month" id="fT" value="${i.targetYM||''}">
@@ -242,28 +244,35 @@ function openInvoice(id){
   <div class="err" id="fErr"></div>
   <button style="width:100%;margin-top:12px" onclick="saveInvoice('${id||''}')">保存</button>
   ${id?`<button class="del" style="width:100%;margin-top:8px" onclick="delInvoice('${id}')">削除</button>`:''}`);
-  kubunHint();
+  vendorPicked(!!id);
 }
 function accOpts(cur){
   const a=[...D.settings.accounts];if(cur&&!a.includes(cur))a.push(cur);
   return a.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('');
 }
-function vendorPicked(){
-  const v=vendor(fV.value);
-  if(v&&v.defAcc){if(![...fC.options].some(o=>o.value===v.defAcc))fC.add(new Option(v.defAcc,v.defAcc));fC.value=v.defAcc;}
+const findV=name=>{const n=(name||'').trim();return n?D.vendors.find(v=>v.name===n):null;};
+function vendorPicked(keepAcc){
+  const v=findV(fV.value);
+  newV.style.display=(!v&&fV.value.trim())?'block':'none';
+  if(!keepAcc&&v&&v.defAcc){if(![...fC.options].some(o=>o.value===v.defAcc))fC.add(new Option(v.defAcc,v.defAcc));fC.value=v.defAcc;}
   kubunHint();
 }
 function kubunHint(){
-  const tmp={vendorId:fV.value,kubun:fK.value,payDate:fP.value||today(),rate:fR.value};
+  const v=findV(fV.value);
   const el=document.getElementById('kHint');if(!el)return;
-  if(!tmp.vendorId){el.textContent='';return;}
+  if(!fV.value.trim()){el.textContent='';return;}
+  let k=fK.value;if(k==='auto')k=v?(checkTNo(v.tno)==='OK'?'tekikaku':'kubun'):(checkTNo(fNT.value)==='OK'?'tekikaku':'kubun');
+  const tmp={vendorId:'',kubun:k,payDate:fP.value||today(),rate:fR.value};
   el.textContent='弥生の税区分 → '+(D.settings.taxMode==='honsoku'||tmp.rate==='0'?taxCode(tmp):(tmp.rate==='8'?'課対仕入内軽減8%':'課対仕入内10%'));
 }
 function saveInvoice(id){
   const amount=parseInt((fA.value||'').replace(/[^\d０-９]/g,'').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)),10);
-  if(!fV.value){fErr.textContent='取引先を選んでください';return;}
+  const vn=fV.value.trim();
+  if(!vn){fErr.textContent='取引先を入れてください';return;}
   if(!amount){fErr.textContent='金額を入れてください';return;}
-  const rec={vendorId:fV.value,account:fC.value,rate:fR.value,targetYM:fT.value,amount,payDate:fP.value,kubun:fK.value,memo:fM.value.trim()};
+  let v=findV(vn);
+  if(!v){v=stamp({id:uid(),name:vn,kana:'',tno:normTNo(fNT.value),address:'',tel:'',bank:'',memo:'',defAcc:fC.value});D.vendors.push(v);}
+  const rec={vendorId:v.id,account:fC.value,rate:fR.value,targetYM:fT.value,amount,payDate:fP.value,kubun:fK.value,memo:fM.value.trim()};
   if(id){const i=D.invoices.find(x=>x.id===id);Object.assign(i,rec);const x=document.getElementById('fX');if(x)i.exported=x.checked;stamp(i);}
   else D.invoices.push(stamp(Object.assign({id:uid(),exported:false},rec)));
   if(rec.payDate)curYM=ym(rec.payDate);
