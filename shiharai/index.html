@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>支払請求書</title>
+<style>
+:root{--bg:#f4f4f2;--card:#fff;--ink:#1d1d1f;--sub:#6e6e73;--line:#e2e2e0;--acc:#1f4e79;--ok:#2e7d32;--warn:#b26a00;--ng:#c62828}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;background:var(--acc);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;z-index:5}
+header h1{margin:0;font-size:17px}
+main{padding:12px}
+.card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.row{display:flex;align-items:center;gap:8px}
+.sp{flex:1}
+.big{font-size:26px;font-weight:700}
+.sub{color:var(--sub);font-size:12px}
+.item{padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:none}
+.badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid}
+.b-ok{color:var(--ok);border-color:var(--ok)}
+.b-warn{color:var(--warn);border-color:var(--warn)}
+.b-sub{color:var(--sub);border-color:var(--line)}
+button{font:inherit;border:none;border-radius:10px;padding:10px 14px;background:var(--acc);color:#fff}
+button.ghost{background:#fff;color:var(--acc);border:1px solid var(--acc)}
+button.del{background:#fff;color:var(--ng);border:1px solid var(--ng)}
+button.small{padding:6px 10px;font-size:13px}
+input,select,textarea{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;color:var(--sub);border-radius:0;padding:12px 0;font-size:13px}
+nav button.on{color:var(--acc);font-weight:700}
+.fab{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:28px;font-size:28px;padding:0;box-shadow:0 3px 8px rgba(0,0,0,.25);z-index:6}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;z-index:10}
+.modal.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}
+td.n,th.n{text-align:right;white-space:nowrap}
+.seg{display:flex;background:#e6e6e4;border-radius:9px;padding:2px;margin-bottom:12px}
+.seg button{flex:1;background:none;color:var(--ink);padding:7px;font-size:13px;border-radius:7px}
+.seg button.on{background:#fff;font-weight:700}
+.note{font-size:12px;color:var(--sub);line-height:1.6}
+.err{color:var(--ng);font-size:12px}
+.empty{color:var(--sub);text-align:center;padding:20px 0}
+</style>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+</head>
+<body>
+<header class="row"><h1 id="title" class="sp">支払請求書</h1><button id="syncBtn" class="small" style="background:rgba(255,255,255,.18)" onclick="syncNow(true)">☁ 未接続</button></header>
+<main id="main"></main>
+<button class="fab" id="fab" onclick="openInvoice()">＋</button>
+<nav>
+ <button data-t="list" class="on">月別一覧</button>
+ <button data-t="year">年間集計</button>
+ <button data-t="vendors">取引先</button>
+ <button data-t="export">弥生出力</button>
+ <button data-t="settings">設定</button>
+</nav>
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
+
+<script>
+// ===== データ =====
+const KEY='gaichu_v1';
+const DEF_ACC=['外注費','仕入高','材料費','消耗品費','工具器具備品','修繕費','通信費','地代家賃','水道光熱費','車両費','旅費交通費','支払手数料','雑費'];
+const DEF_SET={accounts:DEF_ACC,bank:'普通預金',bankSub:'',taxMode:'honsoku'};
+let D={vendors:[],invoices:[],settings:{...DEF_SET}};
+function migrate(p){
+  const st=Object.assign({},DEF_SET,p.settings||{});
+  if(!Array.isArray(st.accounts)||!st.accounts.length)st.accounts=[...DEF_ACC];
+  if(st.account){if(!st.accounts.includes(st.account))st.accounts.unshift(st.account);}
+  const old=st.account||'外注費';delete st.account;
+  (p.invoices||[]).forEach(i=>{if(!i.account)i.account=old;if(!i.rate)i.rate='10';});
+  (p.vendors||[]).forEach(v=>{if(v.defAcc===undefined)v.defAcc=old;});
+  p.settings=st;return p;
+}
+try{const s=localStorage.getItem(KEY);if(s){D=migrate(Object.assign(D,JSON.parse(s)));}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){alert('保存できませんでした。バックアップを書き出してください。');}scheduleSync();}
+const stamp=o=>{o.updatedAt=Date.now();return o;};
+function markDel(id){D.deleted=D.deleted||{};D.deleted[id]=Date.now();}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const yen=n=>'¥'+(n||0).toLocaleString('ja-JP');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const vendor=id=>D.vendors.find(v=>v.id===id);
+const vname=id=>(vendor(id)||{}).name||'(削除された取引先)';
+const taxOf=i=>i.rate==='8'?Math.floor(i.amount*8/108):i.rate==='0'?0:Math.floor(i.amount*10/110);
+const rateLabel=r=>r==='8'?'軽減8%':r==='0'?'対象外':'10%';
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const ym=d=>d?d.slice(0,7):'';
+const ymLabel=s=>s?(+s.slice(0,4))+'年'+(+s.slice(5,7))+'月':'';
+let tab='list';
+let curYM=ym(today());
+let curYear=today().slice(0,4);
+
+// インボイス登録番号チェック（T＋13桁、チェックディジット）
+function checkTNo(t){
+  if(!t)return '';
+  t=t.replace(/[Ｔｔ]/g,'T').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).replace(/[\s-]/g,'').toUpperCase();
+  if(!/^T\d{13}$/.test(t))return 'NG';
+  const d=t.slice(1).split('').map(Number);
+  let sum=0;for(let i=1;i<=12;i++){sum+=d[13-i]*(i%2===1?1:2);}
+  return (9-(sum%9))===d[0]?'OK':'NG';
+}
+function normTNo(t){return (t||'').replace(/[Ｔｔ]/g,'T').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).replace(/[\s-]/g,'').toUpperCase();}
+
+// 請求書区分の自動判定
+function autoKubun(inv){
+  if(inv.kubun&&inv.kubun!=='auto')return inv.kubun;
+  const v=vendor(inv.vendorId);
+  return v&&checkTNo(v.tno)==='OK'?'tekikaku':'kubun';
+}
+function koujoPct(date){
+  if(date<'2026-10-01')return '80%';
+  if(date<'2029-10-01')return '50%';
+  return '控不';
+}
+function taxCode(inv){
+  if(inv.rate==='0')return '対象外';
+  let s=inv.rate==='8'?'課対仕入内軽減8%':'課対仕入内10%';
+  if(D.settings.taxMode!=='honsoku'||!inv.payDate||inv.payDate<'2023-10-01')return s;
+  return autoKubun(inv)==='tekikaku'?s+'適格':s+'区分'+koujoPct(inv.payDate);
+}
+function kubunBadge(inv){
+  if(inv.rate==='0')return '';
+  const k=autoKubun(inv);
+  return k==='tekikaku'?'<span class="badge b-ok">適格</span>':'<span class="badge b-warn">登録番号なし</span>';
+}
+
+// ===== 画面 =====
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));render();});
+function render(){
+  document.getElementById('fab').style.display=(tab==='list'||tab==='vendors')?'block':'none';
+  document.getElementById('fab').onclick=tab==='vendors'?()=>openVendor():()=>openInvoice();
+  ({list:renderList,year:renderYear,vendors:renderVendors,export:renderExport,settings:renderSettings})[tab]();
+  window.scrollTo(0,0);
+}
+function shiftYM(n){const [y,m]=curYM.split('-').map(Number);const d=new Date(y,m-1+n,1);curYM=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');render();}
+
+function invRow(i){
+  return `<div class="item" onclick="openInvoice('${i.id}')"><div class="row"><b>${esc(vname(i.vendorId))}</b><span class="badge b-sub" style="margin-left:4px">${esc(i.account)}</span><span class="sp"></span><b>${yen(i.amount)}</b></div>
+  <div class="row sub" style="margin-top:3px">${i.targetYM?ymLabel(i.targetYM)+'分　':''}${i.payDate?'支払 '+i.payDate.replace(/-/g,'/'):'<span style="color:var(--ng)">未払い</span>'}
+  <span class="sp"></span>${kubunBadge(i)} ${i.exported?'<span class="badge b-sub">弥生済</span>':''}</div>${i.memo?`<div class="sub">${esc(i.memo)}</div>`:''}</div>`;
+}
+function accTable(list){
+  const byA={};list.forEach(i=>byA[i.account]=(byA[i.account]||0)+i.amount);
+  if(!Object.keys(byA).length)return '';
+  return `<div class="card"><b>科目別</b><table>${Object.entries(byA).sort((a,b)=>b[1]-a[1]).map(([a,v])=>`<tr><td>${esc(a)}</td><td class="n">${yen(v)}</td></tr>`).join('')}</table></div>`;
+}
+function renderList(){
+  const paid=D.invoices.filter(i=>ym(i.payDate)===curYM).sort((a,b)=>a.payDate<b.payDate?-1:1);
+  const unpaid=D.invoices.filter(i=>!i.payDate).sort((a,b)=>(a.targetYM||'')<(b.targetYM||'')?-1:1);
+  const total=paid.reduce((s,i)=>s+i.amount,0);
+  const byV={};paid.forEach(i=>byV[i.vendorId]=(byV[i.vendorId]||0)+i.amount);
+  let h=`<div class="card"><div class="row"><button class="ghost small" onclick="shiftYM(-1)">◀</button><span class="sp" style="text-align:center;font-weight:700">${ymLabel(curYM)} 支払分</span><button class="ghost small" onclick="shiftYM(1)">▶</button></div>
+  <div style="text-align:center;margin-top:10px"><div class="big">${yen(total)}</div><div class="sub">${paid.length}件（税込）・うち消費税相当 ${yen(paid.reduce((s,i)=>s+taxOf(i),0))}</div></div></div>`;
+  h+=accTable(paid);
+  if(Object.keys(byV).length){h+=`<div class="card"><b>取引先別</b><table>${Object.entries(byV).sort((a,b)=>b[1]-a[1]).map(([id,a])=>`<tr><td>${esc(vname(id))}</td><td class="n">${yen(a)}</td></tr>`).join('')}</table></div>`;}
+  h+=`<div class="card"><b>明細</b>${paid.length?paid.map(invRow).join(''):'<div class="empty">この月の支払いはまだありません</div>'}</div>`;
+  if(unpaid.length)h+=`<div class="card"><div class="row"><b>未払い（支払日未入力）</b><span class="sp"></span><b style="color:var(--ng)">${yen(unpaid.reduce((s,i)=>s+i.amount,0))}</b></div>${unpaid.map(invRow).join('')}</div>`;
+  document.getElementById('main').innerHTML=h;
+}
+function renderYear(){
+  const list=D.invoices.filter(i=>i.payDate&&i.payDate.startsWith(curYear));
+  const months=[...Array(12)].map((_,k)=>curYear+'-'+String(k+1).padStart(2,'0'));
+  const byV={};list.forEach(i=>byV[i.vendorId]=(byV[i.vendorId]||0)+i.amount);
+  const total=list.reduce((s,i)=>s+i.amount,0);
+  let h=`<div class="card"><div class="row"><button class="ghost small" onclick="curYear=String(+curYear-1);render()">◀</button><span class="sp" style="text-align:center;font-weight:700">${curYear}年（支払日ベース）</span><button class="ghost small" onclick="curYear=String(+curYear+1);render()">▶</button></div>
+  <div style="text-align:center;margin-top:10px"><div class="big">${yen(total)}</div><div class="sub">${list.length}件</div></div></div>`;
+  h+=`<div class="card"><b>月別</b><table>${months.map(m=>{const a=list.filter(i=>ym(i.payDate)===m).reduce((s,i)=>s+i.amount,0);return `<tr onclick="curYM='${m}';document.querySelector('nav button[data-t=list]').click()"><td>${+m.slice(5)}月</td><td class="n">${a?yen(a):'<span class="sub">-</span>'}</td></tr>`;}).join('')}</table></div>`;
+  h+=accTable(list);
+  h+=`<div class="card"><b>取引先別</b>${Object.keys(byV).length?`<table>${Object.entries(byV).sort((a,b)=>b[1]-a[1]).map(([id,a])=>`<tr><td>${esc(vname(id))}</td><td class="n">${yen(a)}</td></tr>`).join('')}</table>`:'<div class="empty">データなし</div>'}</div>`;
+  document.getElementById('main').innerHTML=h;
+}
+function renderVendors(){
+  const vs=[...D.vendors].sort((a,b)=>(a.kana||a.name).localeCompare(b.kana||b.name,'ja'));
+  document.getElementById('main').innerHTML=`<div class="card">${vs.length?vs.map(v=>{const c=checkTNo(v.tno);return `<div class="item" onclick="openVendor('${v.id}')"><div class="row"><b>${esc(v.name)}</b><span class="sp"></span>${c==='OK'?'<span class="badge b-ok">適格</span>':c==='NG'?'<span class="badge b-warn">番号に誤り</span>':'<span class="badge b-warn">登録番号なし</span>'}</div><div class="sub">${v.defAcc?esc(v.defAcc)+'　':''}${esc(v.tno||'')}${v.tel?'　'+esc(v.tel):''}</div></div>`;}).join(''):'<div class="empty">右下の＋から取引先を登録</div>'}</div>`;
+}
+function renderExport(){
+  const months=[...new Set(D.invoices.filter(i=>i.payDate).map(i=>ym(i.payDate)))].sort().reverse();
+  if(!months.includes(curYM))months.unshift(curYM);
+  const sel=document.getElementById('exYM')?.value||curYM;
+  const list=D.invoices.filter(i=>ym(i.payDate)===sel);
+  const notYet=list.filter(i=>!i.exported);
+  document.getElementById('main').innerHTML=`<div class="card"><label>支払月</label><select id="exYM" onchange="renderExport()">${months.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${ymLabel(m)}</option>`).join('')}</select>
+  <div class="sub" style="margin-top:8px">${list.length}件／未取込 ${notYet.length}件・${yen(notYet.reduce((s,i)=>s+i.amount,0))}</div>
+  <label><input type="checkbox" id="exAll" style="width:auto"> 取込済みのものも含める</label>
+  <button style="width:100%;margin-top:10px" onclick="exportYayoi()">弥生用CSVを書き出す</button>
+  <button class="ghost" style="width:100%;margin-top:8px" onclick="exportList()">一覧CSV（保管・Excel用）</button></div>
+  <div class="card note"><b>仕訳の形</b><br>（請求書ごとの科目）${D.settings.taxMode==='honsoku'?'＋適格／区分記載':''} ／ ${esc(D.settings.bank)}${D.settings.bankSub?'（'+esc(D.settings.bankSub)+'）':''}<br>
+  <b>弥生会計オンラインでの取り込み</b><br>メニュー「設定」→「データのインポート」（弥生データのインポート）で書き出したCSVを選びます。書き出した明細には「弥生済」が付き、次回は重複しません。<br>
+  最初の1回は件数の少ない月で試して、仕訳の一覧で税区分と請求書区分が正しく入ったか確認してください。</div>`;
+}
+function renderSettings(){
+  const s=D.settings;
+  document.getElementById('main').innerHTML=`<div class="card">
+  <label>使う勘定科目（1行に1つ）</label><textarea id="sAcc" rows="8">${esc(s.accounts.join('\n'))}</textarea>
+  <div class="note">弥生側の科目名と一字一句同じにしてください。やよいの青色申告オンラインなら外注は「外注工賃」、仕入は「仕入高」が標準です。弥生にない科目は弥生側で先に追加してください。</div>
+  <label>支払口座の科目</label><input id="sBank" value="${esc(s.bank)}">
+  <label>口座の補助科目（弥生に登録している銀行名など・空欄可）</label><input id="sBankSub" value="${esc(s.bankSub)}">
+  <label>消費税の計算方式</label><select id="sTax"><option value="honsoku" ${s.taxMode==='honsoku'?'selected':''}>本則課税（インボイス区分を付ける）</option><option value="other" ${s.taxMode!=='honsoku'?'selected':''}>簡易課税・免税（区分は付けない）</option></select>
+  <button style="width:100%;margin-top:14px" onclick="saveSettings()">保存</button></div>
+  <div class="card"><b>OneDrive同期（iPhone・iPad共通）</b>
+  <label>アプリケーション(クライアント)ID</label><input id="sCid" value="${esc(cfg.clientId||'')}" placeholder="施工報告書・ホテル計算と同じID">
+  <div class="note">保存先：OneDrive の「アプリ同期/seikyu.json」<br>Azureの「リダイレクトURI」にこのページのURL<br><b>${esc(location.origin+location.pathname)}</b><br>を追加してください（ホテル計算のときと同じ手順）。</div>
+  <div class="row" style="margin-top:10px"><button class="sp" onclick="cfg.clientId=sCid.value.trim();saveCfg();msalApp=null;signIn()">${account()?'保存して再接続':'Microsoftでログイン'}</button>${account()?'<button class="ghost" onclick="signOut()">ログアウト</button>':''}</div>
+  <div class="note" style="margin-top:6px">${account()?'接続中：'+esc(account().username):'未接続'}${lastSync?'　最終同期 '+new Date(lastSync).toLocaleString('ja-JP'):''}</div></div>
+  <div class="card"><b>バックアップ</b><div class="note">OneDriveとは別に、月1回くらい書き出しておくと安心です。</div>
+  <button class="ghost" style="width:100%;margin-top:8px" onclick="backup()">バックアップを書き出す</button>
+  <button class="ghost" style="width:100%;margin-top:8px" onclick="document.getElementById('restore').click()">バックアップから復元</button>
+  <input type="file" id="restore" accept=".json,application/json" style="display:none" onchange="restore(this)"></div>`;
+}
+function saveSettings(){
+  const accs=[...new Set(sAcc.value.split('\n').map(x=>x.trim()).filter(Boolean))];
+  D.settings={accounts:accs.length?accs:[...DEF_ACC],bank:sBank.value.trim()||'普通預金',bankSub:sBankSub.value.trim(),taxMode:sTax.value};
+  D.settingsAt=Date.now();
+  save();alert('保存しました');
+}
+
+// ===== 入力フォーム =====
+function openModal(h){document.getElementById('sheet').innerHTML=h;document.getElementById('modal').classList.add('on');}
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+
+function openInvoice(id){
+  if(!D.vendors.length){alert('先に取引先を登録してください');tab='vendors';document.querySelector('nav button[data-t=vendors]').click();openVendor();return;}
+  const i=id?D.invoices.find(x=>x.id===id):{vendorId:'',targetYM:(()=>{const [y,m]=today().split('-').map(Number);const d=new Date(y,m-2,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})(),amount:'',payDate:'',kubun:'auto',memo:'',account:'',rate:'10'};
+  const vs=[...D.vendors].sort((a,b)=>(a.kana||a.name).localeCompare(b.kana||b.name,'ja'));
+  openModal(`<div class="row"><b style="font-size:17px">${id?'請求書を編集':'請求書を追加'}</b><span class="sp"></span><button class="ghost small" onclick="closeModal()">閉じる</button></div>
+  <label>取引先</label><select id="fV" onchange="vendorPicked()"><option value="">選んでください</option>${vs.map(v=>`<option value="${v.id}" ${v.id===i.vendorId?'selected':''}>${esc(v.name)}</option>`).join('')}</select>
+  <label>勘定科目</label><select id="fC">${accOpts(i.account)}</select>
+  <label>税率</label><select id="fR" onchange="kubunHint()"><option value="10" ${i.rate!=='8'&&i.rate!=='0'?'selected':''}>10%</option><option value="8" ${i.rate==='8'?'selected':''}>軽減8%（飲食料品など）</option><option value="0" ${i.rate==='0'?'selected':''}>対象外（消費税なし）</option></select>
+  <label>何月分の請求か</label><input type="month" id="fT" value="${i.targetYM||''}">
+  <label>請求金額（税込）</label><input id="fA" inputmode="numeric" value="${i.amount||''}" placeholder="例 165000">
+  <label>支払日（未払いなら空欄）</label><div class="row"><input type="date" id="fP" value="${i.payDate||''}"><button class="ghost small" onclick="fP.value=today()">今日</button></div>
+  <label>請求書区分</label><select id="fK" onchange="kubunHint()"><option value="auto" ${i.kubun==='auto'||!i.kubun?'selected':''}>自動（取引先の登録番号で判定）</option><option value="tekikaku" ${i.kubun==='tekikaku'?'selected':''}>適格請求書</option><option value="kubun" ${i.kubun==='kubun'?'selected':''}>登録番号なし（区分記載）</option></select>
+  <div class="note" id="kHint"></div>
+  <label>メモ（現場名など）</label><input id="fM" value="${esc(i.memo)}">
+  ${i.exported?'<label><input type="checkbox" id="fX" checked style="width:auto"> 弥生に取込済み</label>':''}
+  <div class="err" id="fErr"></div>
+  <button style="width:100%;margin-top:12px" onclick="saveInvoice('${id||''}')">保存</button>
+  ${id?`<button class="del" style="width:100%;margin-top:8px" onclick="delInvoice('${id}')">削除</button>`:''}`);
+  kubunHint();
+}
+function accOpts(cur){
+  const a=[...D.settings.accounts];if(cur&&!a.includes(cur))a.push(cur);
+  return a.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('');
+}
+function vendorPicked(){
+  const v=vendor(fV.value);
+  if(v&&v.defAcc){if(![...fC.options].some(o=>o.value===v.defAcc))fC.add(new Option(v.defAcc,v.defAcc));fC.value=v.defAcc;}
+  kubunHint();
+}
+function kubunHint(){
+  const tmp={vendorId:fV.value,kubun:fK.value,payDate:fP.value||today(),rate:fR.value};
+  const el=document.getElementById('kHint');if(!el)return;
+  if(!tmp.vendorId){el.textContent='';return;}
+  el.textContent='弥生の税区分 → '+(D.settings.taxMode==='honsoku'||tmp.rate==='0'?taxCode(tmp):(tmp.rate==='8'?'課対仕入内軽減8%':'課対仕入内10%'));
+}
+function saveInvoice(id){
+  const amount=parseInt((fA.value||'').replace(/[^\d０-９]/g,'').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)),10);
+  if(!fV.value){fErr.textContent='取引先を選んでください';return;}
+  if(!amount){fErr.textContent='金額を入れてください';return;}
+  const rec={vendorId:fV.value,account:fC.value,rate:fR.value,targetYM:fT.value,amount,payDate:fP.value,kubun:fK.value,memo:fM.value.trim()};
+  if(id){const i=D.invoices.find(x=>x.id===id);Object.assign(i,rec);const x=document.getElementById('fX');if(x)i.exported=x.checked;stamp(i);}
+  else D.invoices.push(stamp(Object.assign({id:uid(),exported:false},rec)));
+  if(rec.payDate)curYM=ym(rec.payDate);
+  save();closeModal();render();
+}
+function delInvoice(id){if(!confirm('この請求書を削除しますか？'))return;markDel(id);D.invoices=D.invoices.filter(x=>x.id!==id);save();closeModal();render();}
+
+function openVendor(id){
+  const v=id?vendor(id):{name:'',kana:'',tno:'',address:'',tel:'',bank:'',memo:'',defAcc:D.settings.accounts[0]};
+  openModal(`<div class="row"><b style="font-size:17px">${id?'取引先を編集':'取引先を追加'}</b><span class="sp"></span><button class="ghost small" onclick="closeModal()">閉じる</button></div>
+  <label>名前（会社名・屋号）</label><input id="vN" value="${esc(v.name)}">
+  <label>ふりがな（並び順用・任意）</label><input id="vK" value="${esc(v.kana)}">
+  <label>いつもの勘定科目（請求書入力時に自動で入ります）</label><select id="vC">${accOpts(v.defAcc)}</select>
+  <label>インボイス登録番号</label><input id="vT" value="${esc(v.tno)}" placeholder="T1234567890123" oninput="tHint()" autocapitalize="characters">
+  <div class="note" id="tH"></div>
+  <label>住所</label><input id="vA" value="${esc(v.address)}">
+  <label>電話</label><input id="vP" type="tel" value="${esc(v.tel)}">
+  <label>振込先</label><textarea id="vB" rows="2">${esc(v.bank)}</textarea>
+  <label>メモ</label><textarea id="vM" rows="2">${esc(v.memo)}</textarea>
+  <div class="err" id="vErr"></div>
+  <button style="width:100%;margin-top:12px" onclick="saveVendor('${id||''}')">保存</button>
+  ${id?`<button class="del" style="width:100%;margin-top:8px" onclick="delVendor('${id}')">削除</button>`:''}`);
+  tHint();
+}
+function tHint(){
+  const c=checkTNo(vT.value);
+  tH.innerHTML=c==='OK'?'<span style="color:var(--ok)">✓ 番号の形式OK（適格請求書として扱います）</span>':c==='NG'?'<span style="color:var(--ng)">番号の形式が正しくありません（T＋13桁）</span>':'空欄の場合は「登録番号なし」として扱います';
+}
+function saveVendor(id){
+  if(!vN.value.trim()){vErr.textContent='名前を入れてください';return;}
+  const t=normTNo(vT.value);
+  if(t&&checkTNo(t)==='NG'&&!confirm('登録番号の形式が正しくないようです。このまま保存しますか？'))return;
+  const rec={defAcc:vC.value,name:vN.value.trim(),kana:vK.value.trim(),tno:t,address:vA.value.trim(),tel:vP.value.trim(),bank:vB.value.trim(),memo:vM.value.trim()};
+  if(id)stamp(Object.assign(vendor(id),rec));else D.vendors.push(stamp(Object.assign({id:uid()},rec)));
+  save();closeModal();render();
+}
+function delVendor(id){
+  const n=D.invoices.filter(i=>i.vendorId===id).length;
+  if(n){alert(`この取引先の請求書が${n}件あるため削除できません`);return;}
+  if(!confirm('削除しますか？'))return;
+  markDel(id);D.vendors=D.vendors.filter(v=>v.id!==id);save();closeModal();render();
+}
+
+// ===== 書き出し =====
+let SJ=null;
+function sjisMap(){
+  if(SJ)return SJ;SJ=new Map();
+  const dec=new TextDecoder('shift_jis');
+  for(let b=0xA1;b<=0xDF;b++){SJ.set(dec.decode(new Uint8Array([b])),[b]);}
+  for(let hi=0x81;hi<=0xFC;hi++){if(hi>=0xA0&&hi<=0xDF)continue;for(let lo=0x40;lo<=0xFC;lo++){if(lo===0x7F)continue;const s=dec.decode(new Uint8Array([hi,lo]));if(s.length===1&&s!=='�'&&!SJ.has(s))SJ.set(s,[hi,lo]);}}
+  const alias={'～':'〜','−':'－','‖':'∥','¢':'￠','£':'￡','¬':'￢','—':'―'};
+  for(const[a,b] of Object.entries(alias))if(!SJ.has(a)&&SJ.has(b))SJ.set(a,SJ.get(b));
+  return SJ;
+}
+function toSJIS(str){
+  const m=sjisMap(),out=[];
+  for(const ch of str){const c=ch.codePointAt(0);if(c<0x80)out.push(c);else{const b=m.get(ch);if(b)out.push(...b);else out.push(0x3F);}}
+  return new Uint8Array(out);
+}
+function download(name,data,type){
+  const blob=new Blob([data],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+const q=s=>{s=String(s??'');return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+function cut(s,n){return [...String(s||'')].slice(0,n).join('');}
+function exportYayoi(){
+  const sel=exYM.value,all=exAll.checked;
+  const list=D.invoices.filter(i=>ym(i.payDate)===sel&&(all||!i.exported)).sort((a,b)=>a.payDate<b.payDate?-1:1);
+  if(!list.length){alert('書き出す明細がありません');return;}
+  const s=D.settings;
+  const lines=list.map(i=>{
+    const v=vendor(i.vendorId)||{name:''};
+    const tax=taxOf(i);
+    const tek=cut(`${v.name} ${i.targetYM?(+i.targetYM.slice(5))+'月分':''}${i.memo?' '+i.memo:''}`.trim(),30);
+    const cols=['2000','','',i.payDate.replace(/-/g,'/'),i.account,'','',(s.taxMode==='honsoku'||i.rate==='0')?taxCode(i):(i.rate==='8'?'課対仕入内軽減8%':'課対仕入内10%'),i.amount,tax,
+      s.bank,s.bankSub,'','',i.amount,'',tek,'','','','','','','','no',cut(v.name,15),''];
+    return cols.map(q).join(',');
+  });
+  download(`弥生_支払_${sel}.csv`,toSJIS(lines.join('\r\n')+'\r\n'),'text/csv');
+  if(confirm(`${list.length}件を書き出しました。\n「弥生済」にしますか？（弥生への取込が終わったら「OK」）`)){list.forEach(i=>{i.exported=true;stamp(i);});save();renderExport();}
+}
+function exportList(){
+  const sel=exYM.value;
+  const list=D.invoices.filter(i=>ym(i.payDate)===sel).sort((a,b)=>a.payDate<b.payDate?-1:1);
+  if(!list.length){alert('この月の明細がありません');return;}
+  const rows=[['支払日','取引先','勘定科目','登録番号','対象月','請求額(税込)','税率','うち消費税','請求書区分','メモ']];
+  list.forEach(i=>{const v=vendor(i.vendorId)||{};rows.push([i.payDate,v.name,i.account,v.tno||'',i.targetYM,i.amount,rateLabel(i.rate),taxOf(i),i.rate==='0'?'':(autoKubun(i)==='tekikaku'?'適格':'区分記載'),i.memo]);});
+  rows.push(['合計','','','','',list.reduce((s,i)=>s+i.amount,0),'',list.reduce((s,i)=>s+taxOf(i),0),'','']);
+  const byA={};list.forEach(i=>byA[i.account]=(byA[i.account]||0)+i.amount);
+  rows.push([]);rows.push(['科目別合計']);Object.entries(byA).forEach(([a,v])=>rows.push([a,v]));
+  download(`支払請求一覧_${sel}.csv`,toSJIS(rows.map(r=>r.map(q).join(',')).join('\r\n')+'\r\n'),'text/csv');
+}
+function backup(){download(`支払請求書_バックアップ_${today()}.json`,JSON.stringify(D,null,1),'application/json');}
+function restore(inp){
+  const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const p=JSON.parse(r.result);if(!Array.isArray(p.invoices)||!Array.isArray(p.vendors))throw 0;if(!confirm(`取引先${p.vendors.length}件・請求書${p.invoices.length}件で置き換えます。よろしいですか？`))return;D=migrate(p);const t=Date.now();D.invoices.forEach(i=>i.updatedAt=t);D.vendors.forEach(v=>v.updatedAt=t);D.settingsAt=t;save();render();alert('復元しました');}catch(e){alert('読み込めませんでした');}};
+  r.readAsText(f);inp.value='';
+}
+
+// ===== OneDrive同期 =====
+const CFG_KEY='seikyu_cfg';
+let cfg={};try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');}catch(e){}
+function saveCfg(){try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}catch(e){}}
+const SCOPES=['Files.ReadWrite'];
+const FILE_URL="https://graph.microsoft.com/v1.0/me/drive/root:/"+encodeURIComponent('アプリ同期')+"/seikyu.json:/content";
+let msalApp=null,syncTimer=null,syncing=false,lastSync=+(localStorage.getItem('seikyu_last')||0);
+function getMsal(){
+  if(msalApp||!cfg.clientId||!window.msal)return msalApp;
+  msalApp=new msal.PublicClientApplication({auth:{clientId:cfg.clientId,authority:'https://login.microsoftonline.com/common',redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});
+  return msalApp;
+}
+function account(){const m=getMsal();return m?m.getAllAccounts()[0]:null;}
+function setBtn(t){const b=document.getElementById('syncBtn');if(b)b.textContent=t;}
+async function signIn(){
+  const m=getMsal();if(!m){alert('クライアントIDを入れてください');tab='settings';render();return;}
+  await m.loginRedirect({scopes:SCOPES});
+}
+async function signOut(){const m=getMsal();if(m&&account())await m.logoutRedirect({account:account()});}
+async function token(){
+  const m=getMsal(),a=account();if(!a)return null;
+  try{return (await m.acquireTokenSilent({scopes:SCOPES,account:a})).accessToken;}
+  catch(e){await m.acquireTokenRedirect({scopes:SCOPES,account:a});return null;}
+}
+function mergeList(a,b,del){
+  const m=new Map();
+  [...a,...b].forEach(x=>{const c=m.get(x.id);if(!c||(x.updatedAt||0)>(c.updatedAt||0))m.set(x.id,x);});
+  return [...m.values()].filter(x=>!(del[x.id]&&del[x.id]>=(x.updatedAt||0)));
+}
+function merge(L,R){
+  const del=Object.assign({},R.deleted||{});Object.entries(L.deleted||{}).forEach(([k,v])=>{if(!del[k]||v>del[k])del[k]=v;});
+  const useR=(R.settingsAt||0)>(L.settingsAt||0);
+  return migrate({vendors:mergeList(L.vendors,R.vendors||[],del),invoices:mergeList(L.invoices,R.invoices||[],del),
+    settings:useR?R.settings:L.settings,settingsAt:Math.max(L.settingsAt||0,R.settingsAt||0),deleted:del});
+}
+function scheduleSync(){clearTimeout(syncTimer);if(account())syncTimer=setTimeout(()=>syncNow(false),1500);}
+async function syncNow(manual){
+  if(!account()){if(manual){if(cfg.clientId)signIn();else{tab='settings';document.querySelector('nav button[data-t=settings]').click();}}return;}
+  if(syncing)return;syncing=true;setBtn('☁ 同期中…');
+  try{
+    const t=await token();if(!t)return;
+    let remote={vendors:[],invoices:[]};
+    const g=await fetch(FILE_URL,{headers:{Authorization:'Bearer '+t}});
+    if(g.ok)remote=await g.json();else if(g.status!==404)throw new Error('読込 '+g.status);
+    const before=JSON.stringify(remote);
+    const merged=merge(D,remote);
+    const mergedStr=JSON.stringify(merged);
+    if(mergedStr!==JSON.stringify(D)){D=merged;try{localStorage.setItem(KEY,mergedStr);}catch(e){}render();}
+    if(mergedStr!==before){
+      const p=await fetch(FILE_URL,{method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:mergedStr});
+      if(!p.ok)throw new Error('保存 '+p.status);
+    }
+    lastSync=Date.now();localStorage.setItem('seikyu_last',lastSync);
+    setBtn('☁ 同期済');
+  }catch(e){setBtn('☁ エラー');if(manual)alert('同期できませんでした：'+e.message);}
+  finally{syncing=false;}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow(false);});
+(async()=>{
+  const m=getMsal();
+  if(m){try{await m.handleRedirectPromise();}catch(e){}}
+  setBtn(account()?'☁ 同期':'☁ 未接続');
+  if(account())syncNow(false);
+  if(tab==='settings')render();
+})();
+render();
+</script>
+</body>
+</html>
