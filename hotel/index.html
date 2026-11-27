@@ -2,23 +2,24 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2f5d9e">
 <title>現場計算</title>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--tx:#1c1e21;--sub:#6b7280;--ln:#e5e7eb;--ac:#2f5d9e;--wn:#c2410c;--ok:#15803d;--hd:#e9ecf1;--am:#fff4d6;--amt:#7a5200;--k:#2f6fcf;--u:#d9730d;--c:#1f9d55;--kb:#e4eefc;--ub:#fdecd8;--cb:#dff3e7;--rb:#fde8e8;--rt:#9b1c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
 @media (prefers-color-scheme:dark){:root{--bg:#111214;--card:#1c1e22;--tx:#eceef1;--sub:#9aa1ad;--ln:#2d3038;--ac:#6c9be0;--wn:#fb923c;--ok:#4ade80;--hd:#25282e;--am:#3a2f12;--amt:#f5d58a;--k:#6ea2f0;--u:#f59e42;--c:#4ade80;--kb:#1b2a44;--ub:#3a2a14;--cb:#14301f;--rb:#3a1a1a;--rt:#f5a3a3}}
 *{box-sizing:border-box}
-html,body{margin:0}
+html,body{margin:0;-webkit-text-size-adjust:100%;touch-action:manipulation}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
 input,button,select,textarea{font:inherit;color:var(--tx)}
+input,select,textarea{font-size:16px}
 header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 12px;z-index:5}
 .row{display:flex;gap:8px;align-items:flex-end}
 .row>*{flex:1;min-width:0}.row input{width:100%;min-width:0}
 select,input,textarea{width:100%;padding:9px 10px;border:1px solid var(--ln);border-radius:9px;background:var(--card)}
 textarea{resize:vertical}
 label{display:block;font-size:12px;color:var(--sub);margin-bottom:8px}
-label input,label textarea{margin-top:3px;font-size:15px;color:var(--tx)}
+label input,label textarea{margin-top:3px;font-size:16px;color:var(--tx)}
 .btn{padding:10px 14px;border:1px solid var(--ln);border-radius:10px;background:var(--card);flex:none;width:auto}
 .btn.p{background:var(--ac);color:#fff;border-color:var(--ac)}
 .card{background:var(--card);margin:10px 12px;padding:12px;border-radius:12px;border:1px solid var(--ln)}
@@ -185,6 +186,7 @@ var ws=K("w").sort(bys),map={};ds.forEach(function(d){map[d.dt]=d});
 var f=new Date(ds[0].dt+"T00:00:00");f.setDate(f.getDate()-((f.getDay()+6)%7));
 var last=new Date(ds[ds.length-1].dt+"T00:00:00"),weeks=[];
 while(f<=last){var wk=[];for(var i=0;i<7;i++){var x=new Date(f);x.setDate(f.getDate()+i);wk.push(x)}weeks.push(wk);f.setDate(f.getDate()+7)}
+weeks=weeks.filter(function(wk){return wk.some(function(x){return map[ymd(x)]})});
 var h='<div style="margin:10px 12px"><label class="memo" style="display:block;font-size:12px;color:var(--mu)">印刷用メモ（ホテル名の横に載ります）<input data-id="'+p.id+'" data-f="pm" maxlength="60" placeholder="例：集合 朝8時／駐車場は裏手" value="'+esc(p.pm||"")+'"></label><button class="btn p" id="pdf" style="width:100%;margin-top:10px">印刷プレビュー（PDF・画像で保存）</button><div class="sub" style="margin-top:6px">A4縦で、1枚に2週間ずつ入ります。押すと仕上がりを確認できて、そこからPDFか画像にして保存・共有できます。</div></div>';
 for(var g=0;g<weeks.length;g+=2){h+='<div class="pgw"><div class="pg"><div class="ptt">'+esc(p.n)+(p.pm?'<span class="ptm">'+esc(p.pm)+'</span>':'')+'</div>';
 weeks.slice(g,g+2).forEach(function(wk){
@@ -194,7 +196,7 @@ function r(lb,fn,cls){return'<tr><td class="lb">'+lb+'</td>'+cells.map(function(
 h+='<div class="pw"><table class="pt">'+
 r("作業日",function(q){var wd=q.x.getDay();return'<span style="color:'+(wd===0?"#c00":wd===6?"#1d4ed8":"#000")+'">'+(q.x.getMonth()+1)+"月"+q.x.getDate()+"日 "+"日月火水木金土"[wd]+'</span>'},"dd")+
 r("売り止め",function(q){return'<div style="height:40px;overflow:hidden">'+(q.d?esc(q.d.ns):"")+'</div>'},"t h1")+
-r("作業箇所",function(q){return'<div style="height:26px;overflow:hidden;line-height:13px;display:flex;align-items:center;justify-content:center">'+(q.d?esc(q.d.loc):"")+'</div>'},"c1")+
+r("作業箇所",function(q){var t=q.d?q.d.loc||"":"",L=t.length,fs=L>26?8:L>18?9:L>12?10:11;return'<div style="height:26px;overflow:hidden;line-height:'+(fs+2)+'px;font-size:'+fs+'px;display:flex;align-items:center;justify-content:center">'+esc(t)+'</div>'},"c1")+
 r("台数",function(q){return q.d&&q.d.cnt?q.d.cnt+"台":""},"c1")+
 r("勝手",function(q){return'<div style="height:72px;overflow:hidden">'+(q.d?esc(q.d.kt):"")+'</div>'},"t h2")+
 r("職人数",function(q){return q.a.length?q.a.length+"人":""},"c1")+
@@ -294,6 +296,9 @@ if(ds&&ds.pw){var p2=curP();if(p2){var w2=find(ds.pw);if(w2){var cur=rate(p2,w2)
 if(!ds||!ds.id||!ds.f)return;var it=find(ds.id);if(!it)return;
 if(it.k==="w"&&/^[rmeo]$/.test(ds.f)){K("p").forEach(function(pp){if(pp.pw&&pp.pw[it.id])return;pp.pw=Object.assign({},pp.pw);pp.pw[it.id]=rate({},it);touch(pp)})}
 it[ds.f]=ds.b?t.checked:ds.n?(parseFloat(t.value)||0):t.value;if(ds.f==="n"&&!it[ds.f])it[ds.f]="（名前なし）";touch(it);render();push()});
+/* 拡大・縮小を止める（印刷プレビューの中だけは指で拡大できる） */
+["gesturestart","gesturechange"].forEach(function(n){document.addEventListener(n,function(e){if(!(e.target.closest&&e.target.closest("#pv")))e.preventDefault()},{passive:false})});
+document.addEventListener("touchmove",function(e){if(e.touches.length>1&&!(e.target.closest&&e.target.closest("#pv")))e.preventDefault()},{passive:false});
 $("lg").onclick=function(){pca.loginRedirect({scopes:SC})};
 function start(){$("login").style.display="none";$("app").style.display="block";status("読み込み中…");
 var SEED=[{id:"w0",k:"w",s:1,n:"森岡哲也",r:0,m:27000,e:700,o:8000,role:"u",col:"F4A6A0",t:1},{id:"w1",k:"w",s:2,n:"木田健一郎",r:50000,m:0,e:0,o:0,role:"k",col:"F7B77A",t:1},{id:"w2",k:"w",s:3,n:"柏木竣太",r:50000,m:0,e:0,o:0,role:"k",col:"F5D96B",t:1},{id:"w3",k:"w",s:4,n:"田崎一也",r:50000,m:0,e:0,o:0,role:"k",col:"A8D98A",t:1},{id:"w4",k:"w",s:5,n:"安藤匡摩",r:50000,m:0,e:0,o:0,role:"k",col:"6FCFB0",t:1},{id:"w5",k:"w",s:6,n:"皆川豪志",r:50000,m:0,e:0,o:0,role:"k",col:"7CC4EC",t:1},{id:"w6",k:"w",s:7,n:"山田楓",r:50000,m:0,e:0,o:0,role:"k",col:"8FA8F0",t:1},{id:"w7",k:"w",s:8,n:"石川昌和",r:50000,m:0,e:0,o:0,role:"k",col:"B79CEB",t:1},{id:"w8",k:"w",s:9,n:"岡林正人",r:50000,m:0,e:0,o:0,role:"k",col:"E39BD0",t:1},{id:"w9",k:"w",s:10,n:"田窪正衛",r:50000,m:0,e:0,o:0,role:"k",col:"D4B08C",t:1},{id:"w10",k:"w",s:11,n:"高見了司",r:50000,m:0,e:0,o:0,role:"k",col:"C3D86B",t:1},{id:"w11",k:"w",s:12,n:"松浦千愛",r:25000,m:0,e:0,o:0,role:"c",col:"F08FA8",t:1},{id:"w12",k:"w",s:13,n:"佐藤大典",r:25000,m:0,e:0,o:0,role:"c",col:"9DB4C0",t:1}];
